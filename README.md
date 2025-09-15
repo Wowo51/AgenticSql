@@ -13,7 +13,7 @@ AgenticSql combines **natural language processing** with **iterative agentic rea
 
 ---
 
-This is freshly published code, there will be bugs. I'm going to be focused on debugging AgenticSql over the next few days and weeks so expect rapid fixes. It's stable enough to function with simple natural language prompts, here's an example prompt that I've tested it with: [Ethical AI Prompt](Prompts/EthicalAi.txt)
+This is freshly published code, there will be bugs. I'm going to be focused on debugging AgenticSql over the next few days and weeks so expect rapid fixes. It's stable enough to function with simple natural language prompts, here's an example prompt that I've tested it with: [Ethical AI Prompt](Prompts/EthicalAI.txt)
 
 ---
 
@@ -23,8 +23,8 @@ AgenticSql requires SQL Express or SQL Server to be installed. It is being distr
 
 [AgenticSql Help](AgenticSqlHelp.md) How to compile and use the app(WPF GUI).
 
-Here are guides to the interesting parts of the code.
-[AgenticSql Code Guide](AgenticSqlCodeGuide.md) A guide to the core AgenticSql C# library.
+Here are guides to the interesting parts of the code.</br>
+[AgenticSql Code Guide](AgenticSqlCodeGuide.md) A guide to the core AgenticSql C# library.</br>
 [SqlContain Code Guide](SqlContainCodeGuide.md) A guide to a C# library that contains generated sql code to the database for secure AI development.
 
 ---
@@ -39,8 +39,8 @@ In addition to MIT, this project includes a safeguard that must be preserved. Th
 See the [LICENSE](./LICENSE) file for full details.
 
 ---
-I am providing code generation services in C# and sql.
-10x coder == 1/10 cost.
+I am providing code generation services in C# and sql.</br>
+10x coder == 1/10 cost.</br>
 Estimates: TranscendAI.tech
 
 ![Footer Logo](agenticsql.jpg)
