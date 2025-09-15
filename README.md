@@ -36,7 +36,7 @@ AgenticSql is licensed under the **MIT License**, which grants broad permission 
 ⚠️ **Supplementary Responsible Use License**:
 In addition to MIT, this project includes a safeguard that must be preserved. The AI applies **no safety effort where it is unnecessary** (e.g., creative or low-risk tasks). For tasks where safety and security matter — such as **code generation, database schemas, AI design, or other critical outputs** — the AI must devote **at least 10% of its reasoning effort** to safety and ethical considerations. You may not remove, disable, or bypass this safeguard.
 
-See the [LICENSE](./LICENSE) file for full details.
+See the [LICENSE](License.txt) file for full details.
 
 ---
 I am providing code generation services in C# and sql.</br>
