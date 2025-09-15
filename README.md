@@ -41,7 +41,7 @@ See the [LICENSE](License.txt) file for full details.
 ---
 I am providing code generation services in C# and sql.</br>
 10x coder == 1/10 cost.</br>
-Estimates: [TranscendAI.tech](TranscendAI.tech)
+Estimates: [https://TranscendAI.tech](TranscendAI.tech)
 
 ![Footer Logo](agenticsql.jpg)
 *Copyright © 2025 Warren Harding - TranscendAI.tech - AgenticSql*
