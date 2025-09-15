@@ -1,6 +1,7 @@
 # AgenticSql: Developer Guide
 
 This guide shows how to use the library in real code, with **`SqlAgent`** as the primary entry point. It also covers the lower-level XML/string façade (`SqlStrings`) if you need finer control.
+New: the agent can optionally call your LLM’s **Search** endpoint to use *internet results* during planning.
 
 ---
 
@@ -24,9 +25,10 @@ class Program
 
         // 2) Optional agent configuration (see “SqlAgent knobs” below)
         agent.ModelKey = "gpt-5-nano";
-        agent.UseIsComplete = true;           // let the agent decide when done
-        agent.QueryOnly = false;              // set true for read-only mode
-        agent.NaturalLanguageResponse = false;
+        agent.UseIsComplete = true;            // let the agent decide when done
+        agent.QueryOnly = false;               // set true for read-only mode
+        agent.NaturalLanguageResponse = false; // last-pass humanized answer
+        agent.UseSearch = true;                // <-- NEW: enable internet search
 
         // 3) Run an objective
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -86,7 +88,7 @@ class Program
 ```csharp
 string output = await agent.RunAsync(
     prompt: "Import CSV files from ./data into tables and summarize totals per month.",
-    CallLog: s => Debug.WriteLine(s),
+    CallLog: s => System.Diagnostics.Debug.WriteLine(s),
     ct: CancellationToken.None
 );
 ```
@@ -96,14 +98,17 @@ string output = await agent.RunAsync(
 * Each epoch it:
 
   1. Retrieves schema (`GetSchemaAsyncStr`)
-  2. Asks your LLM (via `OpenAILLM.LLM.Query`) to produce a **strict** `<SqlXmlRequest>` payload
+  2. **Plans**: asks your LLM to produce a strict `<SqlXmlRequest>` payload
+
+     * If `agent.UseSearch == true` → calls `OpenAILLM.LLM.SearchAsync(...)`
+     * Else → calls `OpenAILLM.LLM.Query(...)`
   3. Executes it (`ExecuteToXmlAsync`)
-  4. If it was a query, feeds results into context
+  4. If it was a query, folds results into context
   5. Optionally checks **“Done?”** with `UseIsComplete`
 
 * All steps, inputs, and outputs are **logged** through your `CallLog` delegate.
 
-* The agent stores a rolling **Episodic** trail in `dbo.Episodics` (auto-created).
+* The agent writes a rolling **Episodic** trail to `dbo.Episodics` (auto-created).
 
 **Return value**:
 
@@ -112,14 +117,28 @@ string output = await agent.RunAsync(
 
 ---
 
+## Internet Search (what it changes)
+
+When **`UseSearch = true`**, planning uses the LLM’s search-capable endpoint:
+
+* The agent sends the same planning prompt, but through `LLM.SearchAsync(...)`.
+* The LLM may ground its reasoning on fresh web snippets, then must still return **only** a valid `<SqlXmlRequest>...</SqlXmlRequest>`.
+* Execution against SQL is unchanged; only the **planning** call differs.
+* The agent appends the **reported token/search cost** to the `QueryInput` episodic field each epoch.
+
+> Tip: Use Search for open-ended analytics (“industry-standard date dimensions,” “best-practice indexing steps”) or when your prompt benefits from up-to-date references. Keep `QueryOnly=true` if you just want safe exploration.
+
+---
+
 ## `SqlAgent` knobs (properties you can set)
 
 ```csharp
-agent.ModelKey = "gpt-5-nano";  // passed to OpenAILLM.LLM.Query
-agent.UseIsComplete = true;     // ask LLM <Done>true/false</Done> each epoch
-agent.QueryOnly = false;        // true = hard read-only mode (see below)
+agent.ModelKey = "gpt-5-nano";   // passed to OpenAILLM.LLM.* calls
+agent.UseIsComplete = true;      // ask LLM <Done>true/false</Done> each epoch
+agent.QueryOnly = false;         // true = hard read-only mode (see below)
 agent.NaturalLanguageResponse = false;  // final NL synthesis pass
 agent.MaximumLastQueryOutputLength = 25_000; // context size guard
+agent.UseSearch = true;          // NEW: use internet search during planning
 ```
 
 ### Read-Only Mode (`QueryOnly = true`)
@@ -138,16 +157,16 @@ Use this in UIs or when exploring a production database.
 
 ## What gets saved to `dbo.Episodics`?
 
-The agent writes one row per epoch:
+One row per epoch:
 
 * `EpisodeId` (guid), `EpochIndex`, `Time`
-* `PrepareQueryPrompt` (full prompt sent to LLM for planning)
-* `QueryInput` (the `<SqlXmlRequest>` LLM returned + cost)
+* `PrepareQueryPrompt` (full planning prompt)
+* `QueryInput` (the `<SqlXmlRequest>` the LLM returned **plus cost**)
 * `QueryResult` (the `<SqlResult>` XML from execution)
 * `EpisodicText` (rolling StateOfProgress/NextStep)
 * `DatabaseSchema` (schema snapshot)
 
-The table is **auto-created** (`EnsureEpisodicsTableAsync`) and **cleared at run start**:
+The table is **auto-created** and **cleared at run start**:
 
 ```csharp
 await _sql.EnsureEpisodicsTableAsync();
@@ -158,7 +177,7 @@ await SqlAgent.ClearEpisodicsAsync(_sql.Database);
 
 ## Advanced: Use the string/XML façade (`SqlStrings`)
 
-Everything the agent does is available directly via **`SqlStrings`**. This is useful if you:
+Everything the agent does is available directly via **`SqlStrings`**. Useful if you:
 
 * generate XML yourself,
 * want to drive the DB without the agent loop,
@@ -168,7 +187,7 @@ Everything the agent does is available directly via **`SqlStrings`**. This is us
 
 ```csharp
 var sql = new SqlStrings();
-string connectXml = $@"<ConnectInput><ConnectionString>{SecurityElement.Escape(connStr)}</ConnectionString></ConnectInput>";
+string connectXml = $@"<ConnectInput><ConnectionString>{System.Security.SecurityElement.Escape(connStr)}</ConnectionString></ConnectInput>";
 string result = await sql.ConnectAsyncStr(connectXml); // <Result success="true" ...
 ```
 
@@ -180,8 +199,6 @@ string schemaXml = await sql.GetSchemaAsyncStr("<Empty/>"); // see InputXmlSchem
 
 ### Execute text SQL (query or non-query)
 
-Use the built-in DTO:
-
 ```csharp
 var req = new SqlStrings.SqlTextRequest {
     Sql = "SELECT TOP (10) name, object_id FROM sys.tables ORDER BY name",
@@ -190,7 +207,7 @@ var req = new SqlStrings.SqlTextRequest {
 string xml = await sql.ExecuteAsync(req); // <Result success="true"><Rows>...
 ```
 
-Or the **string-in** helper (XML input → XML output):
+**String-in helper**:
 
 ```csharp
 string inXml = """
@@ -215,7 +232,7 @@ var x = new SqlXmlRequest {
 string xml = await sql.ExecuteToXmlAsync(x); // returns <SqlResult> ... </SqlResult>
 ```
 
-Or the **string-in** version:
+**String-in**:
 
 ```csharp
 string inXml = """
@@ -238,92 +255,90 @@ string xml = await sql.ExecuteToXmlAsyncStr(inXml);
 
 ## Schema/XSD helpers (great for LLM prompts)
 
-To make the LLM produce valid XML, you can embed live XSDs:
+Embed live XSDs to make the LLM produce valid XML:
 
 ```csharp
 string xsd = InputXmlSchemas.SqlXmlRequestXsd();   // XSD for <SqlXmlRequest>
 string xsd2 = InputXmlSchemas.SqlTextRequestXsd(); // XSD for <SqlTextRequest>
+var all = InputXmlSchemas.All();                   // Dictionary<string,string> of all XSDs
 ```
 
-All available:
-
-```csharp
-var all = InputXmlSchemas.All(); // Dictionary<string,string> of all XSDs
-```
-
-There’s also general-purpose XML helpers in `Common`:
+General-purpose XML helpers in `Common`:
 
 * `Common.ExtractXml(string)` – pulls the first XML blob from noisy text
 * `Common.FromXml<T>(string)` – deserialize if valid
-* `Common.ToXmlSchema<T>()` – generate a single, annotated XSD for a .NET type
+* `Common.ToXmlSchema<T>()` – generate an XSD for a .NET type
 
 ---
 
 ## Security posture
 
-* The agent **never** asks for external IO (no files, network, CLR, `xp_cmdshell`, etc.).
-* In **read-only** mode, the agent:
+* The agent does **not** request external IO *inside SQL* (no files, network, CLR, `xp_cmdshell`, etc.).
+* With **`UseSearch = true`**, the LLM’s **planning** call may fetch web content, but SQL execution remains local and constrained.
+* In **read-only** mode:
 
   * forces `CommandType=Text`
-  * runs **`SqlMutationScanner`** which strips comments/strings/identifiers and then looks for mutating constructs (DML/DDL, temp tables, transactions, GRANT/REVOKE/DENY, linked servers, etc.). If any are detected, the step is blocked.
-* You should still follow best practice:
+  * runs **`SqlMutationScanner`** to detect DML/DDL, temp tables, transactions, perms, external/linked server usage, etc.
+* Still follow best practice:
 
-  * Connect with least-privilege (`SELECT` only in read-only flows).
-  * Consider running in a transaction you never commit for explorations.
+  * Use least-privilege credentials (e.g., `SELECT` only for read-only).
+  * Consider running in a never-commit transaction for exploration.
   * Keep `TrustServerCertificate=True` only where appropriate.
 
 ---
 
 ## Cancellation & logging
 
-* `RunAsync` supports a `CancellationToken`. If you cancel mid-epoch, the current step throws and the agent stops.
-* **All** significant steps are surfaced via `CallLog(string)` so you can mirror progress into a UI (e.g., WPF text box).
+* `RunAsync` accepts a `CancellationToken`. If you cancel mid-epoch, the current step throws and the agent stops.
+* All significant steps are surfaced via `CallLog(string)` so you can mirror progress into a UI.
 
 ---
 
 ## Troubleshooting
 
-* **Malformed XML from LLM**
+* **Malformed XML from LLM / Search**
+  The agent uses `Common.FromXml<T>` with `ExtractXml` to tolerate leading chatter. If models still emit broken XML, show the **XSD** (`InputXmlSchemas.SqlXmlRequestXsd()`) in your prompt and require: “Return ONLY one well-formed `<SqlXmlRequest>...</SqlXmlRequest>`.”
 
-  * The agent already calls `Common.FromXml<T>` which tolerates leading chatter via `ExtractXml`. If the model still emits broken XML, consider showing the **XSD** (`InputXmlSchemas.SqlXmlRequestXsd()`) in your prompt and reminding: “Return ONLY one well-formed `<SqlXmlRequest>...</SqlXmlRequest>`.”
-* **“Read-only mode: Potentially mutating SQL detected; blocked.”**
+* **Read-only block**
+  “Read-only mode: Potentially mutating SQL detected; blocked.” → The mutation scanner matched INSERT/UPDATE/DDL/etc. Rephrase the objective for descriptive analytics only, or disable `QueryOnly` (not recommended on prod).
 
-  * The mutation scanner likely matched INSERT/UPDATE/DDL/etc. Modify the objective to be descriptive analytics only, or disable `QueryOnly` (not recommended on prod).
-* **“Incorrect syntax near … Schema …”**
+* **Reserved word column names**
+  If you store schema text, use a non-reserved column like `DatabaseSchema` (already implemented).
 
-  * If you store schema text, use a safe column name like `DatabaseSchema` (already implemented).
 * **Local dev connection**
-
-  * Defaults to `(localdb)\MSSQLLocalDB` with Integrated Security. Override via `AGENTICSQL_SERVER_CONNSTR` or pass an explicit connection string to the factory.
+  Defaults to `(localdb)\MSSQLLocalDB` with Integrated Security. Override via `AGENTICSQL_SERVER_CONNSTR` or pass an explicit connection string to the factory.
 
 ---
 
 ## Minimal examples by task
 
-**List tables (read-only):**
+**List tables (read-only + search):**
 
 ```csharp
 agent.QueryOnly = true;
+agent.UseSearch = true;
 string final = await agent.RunAsync(
-    "Show me all tables and their row counts.",
+    "Show me all tables and their row counts. If helpful, ground on best-practice queries.",
     s => Console.WriteLine(s)
 );
 ```
 
-**Create table then query:**
+**Create table then query (no search):**
 
 ```csharp
 agent.QueryOnly = false;
+agent.UseSearch = false;
 string final = await agent.RunAsync(
     "If dbo.Customers is missing, create it (Id int PK, Name nvarchar(200)), then select TOP(5) *.",
     Console.WriteLine
 );
 ```
 
-**Natural language final answer:**
+**Natural language final answer + search:**
 
 ```csharp
 agent.NaturalLanguageResponse = true;
+agent.UseSearch = true;
 string final = await agent.RunAsync(
     "Summarize total sales by month for 2024, then produce a short plain-text explanation.",
     Console.WriteLine
@@ -334,7 +349,7 @@ string final = await agent.RunAsync(
 
 ```csharp
 var sql = new SqlStrings();
-await sql.ConnectAsyncStr($@"<ConnectInput><ConnectionString>{SecurityElement.Escape(connStr)}</ConnectionString></ConnectInput>");
+await sql.ConnectAsyncStr($@"<ConnectInput><ConnectionString>{System.Security.SecurityElement.Escape(connStr)}</ConnectionString></ConnectInput>");
 string result = await sql.ExecuteAsyncStr("""
 <SqlTextRequest>
   <Sql>SELECT TOP(10) name FROM sys.tables ORDER BY name</Sql>
@@ -349,4 +364,4 @@ string result = await sql.ExecuteAsyncStr("""
 
 * Target framework: **.NET 9.0**
 * ADO provider: **Microsoft.Data.SqlClient 6.1.1**
-* The agent logs the **token cost** it gets back from `OpenAILLM.LLM.Query` into the `QueryInput` episodic field for each epoch.
+* The agent logs the **token/search cost** it gets back from `OpenAILLM.LLM.Query/SearchAsync` into the `QueryInput` episodic field for each epoch.
