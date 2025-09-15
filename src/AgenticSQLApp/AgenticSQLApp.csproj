@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>AgenticSqlIcon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="AgenticSqlIcon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AgenticSql\AgenticSql.csproj" />
+    <ProjectReference Include="..\SqlContain\src\SqlContain\SqlContain.csproj" />
+    <ProjectReference Include="..\SqlTools\src\SqlTools\SqlTools.csproj" />
+  </ItemGroup>
+
+</Project>
