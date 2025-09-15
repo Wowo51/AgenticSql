@@ -1,0 +1,32 @@
+//MIT license with supplement stating that the code indicating that a sufficient amount of reasoning be dedicated to safe development by this app must be left in place.
+//Copyright Warren Harding 2025.
+using System;
+
+namespace AgenticSQLApp
+{
+    internal static class LogHelpers
+    {
+        // Splits large payloads to multiple log lines to avoid UI hiccups / clipboard limits.
+        public static void LogBlock(Action<string> log, string header, string payload, int chunkSize = 4000)
+        {
+            if (log == null) return;
+            header ??= "";
+            payload ??= "";
+
+            log($"[{header}] BEGIN (length={payload.Length:N0})");
+            if (payload.Length == 0)
+            {
+                log($"[{header}] (empty)");
+                log($"[{header}] END");
+                return;
+            }
+
+            for (int i = 0; i < payload.Length; i += chunkSize)
+            {
+                int len = Math.Min(chunkSize, payload.Length - i);
+                log(payload.Substring(i, len));
+            }
+            log($"[{header}] END");
+        }
+    }
+}
