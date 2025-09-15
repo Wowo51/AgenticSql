@@ -100,14 +100,14 @@ namespace OpenAILLM
         /// <summary>
         /// Calls the LLM API with web search, ensuring a timeout and robust error reporting.
         /// </summary>
-        public static async Task<string> SearchAsync(
+        public static async Task<(string, double)> SearchAsync(
             string query,
             string modelKey
         )
         {
             if (string.IsNullOrWhiteSpace(OpenAiKeyPath) || !File.Exists(OpenAiKeyPath))
             {
-                return "Error calling OpenAI LLM: OpenAiKeyPath is not set or file missing.";
+                return ("Error calling OpenAI LLM: OpenAiKeyPath is not set or file missing.", 0);
             }
 
             string apiKey = File.ReadAllText(OpenAiKeyPath);
@@ -134,7 +134,7 @@ namespace OpenAILLM
                 if (completedTask != llmTask)
                 {
                     HandleTimeout(pid);
-                    return $"Error: LLM call timed out after {Timeout.TotalSeconds} seconds. PID={pid}.";
+                    return ($"Error: LLM call timed out after {Timeout.TotalSeconds} seconds. PID={pid}.", 0);
                 }
 
                 var response = await llmTask;
@@ -147,13 +147,14 @@ namespace OpenAILLM
                             sb.Append(part.Text);
                     }
                 }
-                //AccumulatedCost += Cost(response);
-                return sb.ToString();
+                double cost = Cost(response) + 0.01;
+                AccumulatedCost += cost;
+                return (sb.ToString(), cost);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
-                return $"Error calling OpenAI LLM (PID={pid}): {ex.Message}";
+                return ($"Error calling OpenAI LLM (PID={pid}): {ex.Message}", 0);
             }
         }
 
