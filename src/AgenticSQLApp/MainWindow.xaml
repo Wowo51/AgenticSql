@@ -1,0 +1,164 @@
+﻿<Window x:Class="AgenticSQLApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AgenticSQLApp"
+        mc:Ignorable="d"
+        Title="AgenticSql" Height="450" Width="800" WindowState="Maximized">
+    <Window.Resources>
+        <!-- Simple on/off boolean to Visibility -->
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
+
+    <DockPanel LastChildFill="True">
+        <!-- Toolbar (wraps vertically) -->
+        <Border DockPanel.Dock="Top" Padding="8" Background="#FAFAFA" BorderBrush="#DDD" BorderThickness="0,0,0,1">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <WrapPanel Margin="0" Orientation="Horizontal" ItemWidth="Auto" ItemHeight="Auto">
+
+                    <Button x:Name="FileButton" Content="File ▾" MinWidth="100" Margin="0,0,10,10" Click="FileButton_Click">
+                        <Button.ContextMenu>
+                            <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="Open Prompt..." Command="{Binding OpenPromptCommand}" />
+                                <Separator />
+                                <MenuItem Header="Save Prompt" Command="{Binding SavePromptCommand}" />
+                                <MenuItem Header="Save Prompt As..." Command="{Binding SavePromptAsCommand}" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+
+                    <Button Content="StartAgent"
+                        Command="{Binding StartCommand}"
+                        MinWidth="120" Margin="0,0,10,10"/>
+                                    <Button Content="StopAgent"
+                        Command="{Binding StopCommand}"
+                        MinWidth="120" Margin="0,0,10,10"/>
+
+                    <StackPanel Margin="0,0,10,10" MinWidth="70">
+                        <TextBlock Text="MaxEpochs"/>
+                        <TextBox Text="{Binding MaxEpochs, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Bottom">
+                        <CheckBox Content="UseIsComplete"
+                          IsChecked="{Binding UseIsComplete}"
+                          IsEnabled="{Binding IsNotRunning}"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Bottom">
+                        <CheckBox Content="QueryOnly"
+                            IsChecked="{Binding QueryOnly}"
+                            IsEnabled="{Binding IsNotRunning}"
+                            ToolTip="When enabled, the agent must only run SELECT/READ queries (no mutations/DDL)." />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Bottom">
+                        <CheckBox Content="NaturalLanguageResponse"
+                          IsChecked="{Binding NaturalLanguageResponse}"
+                          IsEnabled="{Binding IsNotRunning}"
+                          ToolTip="When enabled, the agent will produce a natural-language response in addition to any structured output."/>
+                    </StackPanel>
+
+                    <!--<StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Bottom">
+                        <CheckBox Content="EnsureNewDatabase"
+                                  IsChecked="{Binding CreateNewDatabase}"/>
+                    </StackPanel>-->
+
+                    <!-- When CreateNewDatabase = true -->
+                    <!--<StackPanel Margin="0,0,10,10" MinWidth="280"
+                                Visibility="{Binding CreateNewDatabase, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Server ConnectionString (optional; defaults to (localdb)\MSSQLLocalDB)"/>
+                        <TextBox Text="{Binding ServerConnectionString, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>-->
+
+                    <StackPanel Margin="0,0,10,10" MinWidth="180">
+                        <TextBlock Text="Db Name"/>
+                        <TextBox Text="{Binding DatabaseName, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+
+                    <!-- When CreateNewDatabase = false -->
+                    <!--<StackPanel Margin="0,0,10,10" MinWidth="360"
+                                Visibility="{Binding NotCreateNewDatabase, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="ConnectionString (existing DB)"/>
+                        <TextBox Text="{Binding ConnectionString, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>-->
+
+                    <!-- Logging controls -->
+                    <Button Content="CopyLog" MinWidth="100" Margin="0,0,10,10"
+                            Command="{Binding CopyLogCommand}"/>
+                    <Button Content="ClearLog" MinWidth="100" Margin="0,0,10,10"
+                            Command="{Binding ClearLogCommand}"/>
+                    <Button Content="ClearAllButLast" MinWidth="140" Margin="0,0,10,10"
+                            Command="{Binding ClearLogExceptLastCommand}"/>
+
+                    <Button Content="ImportFolder" MinWidth="120" Margin="0,0,10,10"
+                        Command="{Binding ImportFolderCommand}" />
+
+                    <Button Content="ExportData" MinWidth="120" Margin="0,0,10,10"
+                        Command="{Binding ExportDataCommand}" />
+
+                    <Button Content="ExportSchema" MinWidth="120" Margin="0,0,10,10"
+                        Command="{Binding ExportSchemaCommand}" />
+
+                    <StackPanel Margin="0,0,10,10" MinWidth="150">
+                        <TextBlock Text="ModelKey"/>
+                        <TextBox Text="{Binding ModelKey, UpdateSourceTrigger=PropertyChanged}"
+                            ToolTip="LLM model key (e.g., gpt-4.1-nano, gpt-4o, o4-mini, etc.)"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Bottom">
+                        <CheckBox Content="ContainServer"
+                            IsChecked="{Binding ContainServer}"
+                            IsEnabled="{Binding IsNotRunning}"
+                            ToolTip="Run SqlContain with instance scope before starting the agent (requires sysadmin)." />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Bottom">
+                        <CheckBox Content="ContainDatabase"
+                            IsChecked="{Binding ContainDatabase}"
+                            IsEnabled="{Binding IsNotRunning}"
+                            ToolTip="Run SqlContain with database scope before starting the agent (requires sysadmin on the instance and access to the DB)." />
+                    </StackPanel>
+                </WrapPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Content: Input / Output panes -->
+        <Grid Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <GroupBox Header="Input" Grid.Column="0" Margin="0,0,8,0">
+                <Grid>
+                    <TextBox Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             FontFamily="Consolas"
+                             TextWrapping="Wrap"
+                             Margin="8"/>
+                </Grid>
+            </GroupBox>
+
+            <GroupBox Header="Output (most recent lines)" Grid.Column="1" Margin="8,0,0,0">
+                <Grid>
+                    <TextBox Text="{Binding Output, Mode=OneWay}"
+                         IsReadOnly="True"
+                         AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         FontFamily="Consolas"
+                         TextWrapping="Wrap"
+                         Margin="8"
+                         TextChanged="Output_TextChanged"/>
+                </Grid>
+            </GroupBox>
+        </Grid>
+    </DockPanel>
+</Window>
