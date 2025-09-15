@@ -29,6 +29,7 @@ namespace AgenticSql
         public bool QueryOnly = false;
         public bool NaturalLanguageResponse = false;
         public int MaximumLastQueryOutputLength = 25000;
+        public bool UseSearch = false;
 
         public SqlAgent(SqlStrings sqlStrings, int maxEpochs = 5)
         {
@@ -68,7 +69,18 @@ namespace AgenticSql
                     prepareQueryPrompt += Environment.NewLine + "Prior error: " + error;
                 }
                 CallLog($"Prepare query prompt: {Environment.NewLine + prepareQueryPrompt}");
-                (string queryInput, double cost) = await LLM.Query(prepareQueryPrompt, ModelKey, null);
+                //(string queryInput, double cost) = await LLM.Query(prepareQueryPrompt, ModelKey, null);
+                //queryInput += Environment.NewLine + "The cost of this LLM call was: " + cost.ToString();
+                string queryInput ="";
+                double cost = 0;
+                if (UseSearch)
+                {
+                    (queryInput, cost) = await LLM.SearchAsync(prepareQueryPrompt, ModelKey);
+                }
+                else
+                {
+                    (queryInput, cost) = await LLM.Query(prepareQueryPrompt, ModelKey, null);
+                }
                 queryInput += Environment.NewLine + "The cost of this LLM call was: " + cost.ToString();
                 CallLog($"Query Input: {Environment.NewLine + queryInput}");
                 var xmlReq = Common.FromXml<SqlXmlRequest>(queryInput);
