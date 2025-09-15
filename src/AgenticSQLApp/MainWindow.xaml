@@ -120,6 +120,13 @@
                             IsEnabled="{Binding IsNotRunning}"
                             ToolTip="Run SqlContain with database scope before starting the agent (requires sysadmin on the instance and access to the DB)." />
                     </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Bottom">
+                        <CheckBox Content="UseSearch"
+                              IsChecked="{Binding UseSearch}"
+                              IsEnabled="{Binding IsNotRunning}"
+                              ToolTip="When enabled, the agent may use web search to plan the next SQL step." />
+                    </StackPanel>
                 </WrapPanel>
             </ScrollViewer>
         </Border>
