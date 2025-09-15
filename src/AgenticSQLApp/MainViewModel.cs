@@ -89,6 +89,13 @@ namespace AgenticSQLApp
             set { _modelKey = value; OnPropertyChanged(); }
         }
 
+        private bool _useSearch = false;
+        public bool UseSearch
+        {
+            get => _useSearch;
+            set { _useSearch = value; OnPropertyChanged(); }
+        }
+
         private bool _containServer = false;
         public bool ContainServer
         {
@@ -259,7 +266,7 @@ namespace AgenticSQLApp
                 agent.ModelKey = ModelKey;
                 agent.NaturalLanguageResponse = NaturalLanguageResponse;
                 agent.QueryOnly = QueryOnly;
-
+                agent.UseSearch = UseSearch;
                 if (ContainServer || ContainDatabase)
                 {
                     try
