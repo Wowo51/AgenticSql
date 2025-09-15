@@ -1,150 +1,111 @@
 # AgenticSQL App: Help & User Guide (with Web Search)
 
-Welcome! This guide walks you through using the **AgenticSQL** desktop app (WPF, .NET 9). It covers first-run setup, the main workflow, switches & safety (including **read-only** and **containment**), importing/exporting, **the new web search capability**, and troubleshooting—**in the same style** as the previous guide.
+Welcome! This guide walks you through the **AgenticSQL** desktop app (WPF, .NET 9). It covers setup, workflow, safety (read-only and containment), import/export, the **web search** option, and troubleshooting—without putting ordinary text inside code boxes.
 
 ---
 
 ## What the app does
 
-* Creates or connects to a SQL Server database (defaults to **LocalDB**).
-* Runs an **iterative SQL agent** that plans and executes T-SQL in short “epochs”.
-* Lets you **see the conversation/log**, save/open your **prompt** from disk, and **stop** the agent mid-run.
-* Optional **containment (SqlContain)** hardening switches.
-* **New:** Optional **web search** to gather external context that can improve the agent’s planning.
-* Utilities to **import a folder of files** into a table, and to **export** schema or data.
+* Creates or connects to a SQL Server database (defaults to LocalDB).
+* Runs an iterative SQL agent that plans and executes T-SQL in short “epochs.”
+* Shows a live log, lets you open/save prompts, and lets you stop mid-run.
+* Optional containment hardening (SqlContain).
+* **New:** optional **web search** to gather external context that can improve planning.
+* Utilities to import a folder of files into a table, and to export schema or data.
 
 ---
 
 ## First-run setup
 
-1. **LLM API key path (required)**
-   The app looks for an OpenAI API key file in the `MainWindow.xaml.cs` constructor:
+### 1) LLM API key path (required)
 
-   ```csharp
-   LLM.OpenAiKeyPath = @"PathToYourKey";
-   ```
+Set the OpenAI API key path in `MainWindow.xaml.cs` (look for `LLM.OpenAiKeyPath`) and make sure the file exists and contains a valid key.
 
-   Ensure this file exists and contains a valid key before running.
+### 2) SQL Server
 
-2. **SQL Server**
-   If you don’t specify anything, the app defaults to:
-
-   ```
-   Server=(localdb)\MSSQLLocalDB;Database=<Db Name>;Trusted_Connection=True;TrustServerCertificate=True;
-   ```
-
-   The **Db Name** toolbar field controls the database (default `AgenticDb`). The app will **create the DB if missing**.
+If you don’t specify anything, the app uses LocalDB with a connection string equivalent to: `Server=(localdb)\MSSQLLocalDB;Database=<Db Name>;Trusted_Connection=True;TrustServerCertificate=True;`.
+The **Db Name** toolbar field controls the database name (default `AgenticDb`). The app will create the database if it’s missing.
 
 ---
 
 ## The Main Window
 
-Top toolbar (left→right; items wrap if your window is narrow):
+**File ▾**
+Open Prompt… (load `.txt`/`.prompt`), Save Prompt, Save Prompt As…
 
-* **File ▾**
+**StartAgent / StopAgent**
+Start runs the agent with your current Prompt and settings. Stop cancels safely and resets UI state.
 
-  * **Open Prompt…** — Load a `.txt`/`.prompt` file into the Prompt pane.
-  * **Save Prompt** — Save current prompt to the last path.
-  * **Save Prompt As…** — Choose a new path and save.
+**MaxEpochs**
+Hard cap on planning steps.
 
-* **StartAgent** / **StopAgent**
+**UseIsComplete**
+Let the agent stop early when objectives are met.
 
-  * Start runs the agent using the **Prompt** and current **settings**.
-  * Stop cancels the run safely and resets UI state.
+**QueryOnly**
+Enforce read-only SQL (no DML/DDL). See **Safety & read-only**.
 
-* **MaxEpochs**
-  Hard stop on planning steps.
+**NaturalLanguageResponse**
+Add a final LLM pass for a concise, human-readable answer.
 
-* **UseIsComplete**
-  Lets the agent decide to stop early when its goals are met.
+**Db Name**
+Database to create/connect.
 
-* **QueryOnly**
-  Enforces **read-only** SQL (no mutations/DDL). See **Safety & read-only** below.
+**CopyLog / ClearLog / ClearAllButLast**
+Log utilities.
 
-* **NaturalLanguageResponse**
-  Adds a final LLM pass to rewrite the result as a concise, human-readable answer.
+**ImportFolder / ExportData / ExportSchema**
+One-click utilities (see below).
 
-* **Db Name**
-  Database to create/connect (LocalDB by default).
+**ModelKey**
+Model identifier (e.g., `gpt-5-mini`). You can change it per run.
 
-* **CopyLog / ClearLog / ClearAllButLast**
-  Manage the log pane.
+**ContainServer / ContainDatabase**
+Run SqlContain hardening before starting; if hardening fails, the agent won’t run.
 
-* **ImportFolder / ExportData / ExportSchema**
-  One-click utilities—details below.
-
-* **ModelKey**
-  LLM model key string (e.g., `gpt-5-mini`). You can change it per run.
-
-* **ContainServer / ContainDatabase**
-  Run **SqlContain** hardening before the agent starts; if hardening fails, the app **won’t run** the agent.
-
-* **UseSearch** **(New)**
-  When enabled, the agent may perform **web searches** during planning to fetch small, relevant snippets (e.g., best-practice T-SQL patterns, SQL idioms, date math quirks). The agent is responsible for citing or summarizing what it used, and your run log will reflect the search actions.
+**UseSearch** (New)
+Allow the agent to do small web lookups during planning (e.g., best-practice patterns, tricky SQL idioms). Search actions are summarized in the log.
 
 ### Panes
 
-* **Input** (left): Your **Prompt**—plain text, multi-line. Save and reuse via the File menu.
-* **Output (most recent lines)** (right): A **live log** of the run; auto-scrolls and shows only the most recent portion for speed. Use **CopyLog** to grab the entire buffered log.
+* **Input** (left): your Prompt (plain text, multi-line).
+* **Output (most recent lines)** (right): live log showing the latest slice for responsiveness. Use CopyLog to capture everything.
 
 ---
 
 ## Typical workflow
 
 1. **Write your Prompt**
+   Describe the goal and the sequence of epochs. Example structure:
 
-   Example:
-
-   ```
-   ```
-
-Generate articles describing ways ensuring agentic systems are safe and complete the final task before quitting.
-
-Every statement labeled Epoch should take one epoch to complete.
-
-Epoch:
-Ensure that a Memory table with a Name and Content column exists.
-
-Epoch:
-Load the existing Memory rows to ensure you are not writing more than one article on one feature.
-
-Epoch:
-Write a long form article listing 3 different principles that could be used to ensure that agentic systems are safe. Add that article to the Memory rows.
-
-1 Epoch per article:
-Select one of the 3 principles and write a long form article about it. Add that article to the end of the Memory rows.
-Repeat this step until you have written one article for each of the three principles.
-
-Epoch:
-The final task is to perform a query that retrieves all of the rows of the Memory table in the order they were created with content.
-
-Completion:
-If the final task succeeded then quit.
-
-```
+> Generate articles describing ways to ensure agentic systems are safe and complete the final task before quitting.
+>
+> Epoch: Ensure that a `Memory` table with `Name` and `Content` exists.
+> Epoch: Load existing `Memory` rows to avoid duplicate topics.
+> Epoch: Write a long article listing 3 safety principles and insert it into `Memory`.
+> One epoch per article: For each principle, write a long article and insert it into `Memory`.
+> Epoch (final): Query all rows from `Memory` in creation order with content.
+> Completion: If the final task succeeded, quit.
 
 2. **Pick settings**
 
-* **MaxEpochs**: 5–10 is a good start.
-* **UseIsComplete**: On for most tasks.
-* **QueryOnly**: On for analytics-only; Off if schema changes are expected.
-* **NaturalLanguageResponse**: On if you want a clean prose answer at the end.
-* **Db Name**: Accept default or set per project.
-* **ModelKey**: Set your preferred model.
-* **Containment**: Toggle **ContainServer**/**ContainDatabase** for extra safety (requires permissions).
-* **UseSearch**: Enable if your prompt could benefit from **current best practices** or **external references** (examples below).
+* MaxEpochs: 5–10 is a good start.
+* UseIsComplete: usually on.
+* QueryOnly: on for analytics-only; off if schema changes are expected.
+* NaturalLanguageResponse: on if you want a clean prose answer.
+* Db Name: accept default or set per project.
+* ModelKey: set your preferred model.
+* Containment: toggle as needed (requires SQL permissions).
+* UseSearch: enable when an external reference would help (examples below).
 
 3. **StartAgent**
+   Watch the log for each epoch’s plan and execution. With UseSearch on, you’ll see concise notes about searches and how findings influenced the plan.
 
-The log shows each epoch’s plan and execution. The agent maintains context (schema + last results), constructs a strict `<SqlXmlRequest>`, executes, and iterates. With **UseSearch** on, you’ll also see web search events and short retrieved snippets summarized into the plan.
-
-4. **StopAgent** (optional)
-
-Cancel any time; the app cleans up UI state and logs “Agent canceled.”
+4. **StopAgent (optional)**
+   Cancel anytime; the UI resets and logs “Agent canceled.”
 
 5. **Review results**
-
-The agent prints a Final State (and an NL answer if enabled). Use **CopyLog** to preserve the full transcript and any search references.
+   Read the final state (and NL summary if enabled). Use CopyLog to archive the full transcript.
 
 ---
 
@@ -152,15 +113,11 @@ The agent prints a Final State (and an NL answer if enabled). Use **CopyLog** to
 
 Turn **QueryOnly** on to force read-only analytics:
 
-* The agent must produce **no mutation** SQL.
-* A mutation scanner strips comments/strings and checks for:
-* DML (INSERT/UPDATE/DELETE/MERGE), DDL (CREATE/ALTER/DROP/TRUNCATE/…),
-* temp objects and `SELECT … INTO`,
-* `EXEC`/`sp_executesql`/`xp_*`,
-* security changes, transactions, `DBCC`, backup/restore, linked servers, etc.
-* If a query looks risky, the epoch is **blocked**, and the agent continues planning (or stops on MaxEpochs).
+* The agent must avoid DML and DDL.
+* A mutation scanner strips comments/strings and checks for dangerous constructs (INSERT/UPDATE/DELETE/MERGE, CREATE/ALTER/DROP/TRUNCATE, SELECT…INTO, temp objects, EXEC/sp\_executesql/xp\_\*, GRANT/REVOKE/DENY, transactions, DBCC, backup/restore, linked servers, etc.).
+* Risky SQL is blocked; the agent adjusts (or stops on MaxEpochs).
 
-> **Tip:** Combine **QueryOnly** with **ContainDatabase**/**ContainServer** to harden the environment using **SqlContain**. If hardening fails, the run is aborted (fail-closed).
+**Tip:** Combine QueryOnly with **ContainDatabase** or **ContainServer** (SqlContain). If hardening fails, the run is aborted (fail-closed).
 
 ---
 
@@ -168,201 +125,141 @@ Turn **QueryOnly** on to force read-only analytics:
 
 When **UseSearch** is enabled:
 
-* The agent is allowed to perform **limited web lookups** to reduce guesswork (e.g., precise date formatting, tricky window functions, safe paging patterns).
-* Retrieved text is **summarized** and used to refine the *next* SQL step. The agent strives to avoid copy-pasting raw external content directly into SQL.
-* The log will reflect:
-* That a search was performed,
-* A brief rationale (why),
-* A compact summary of what was learned (what),
-* Any resulting change to the plan (how).
-* **Privacy note:** Only the prompt and necessary keywords for your task are used to search. Avoid including secrets in the prompt.
-* **Cost/latency:** Searches add extra LLM/tool calls. Expect slightly higher cost and longer runs when this is on.
+* The agent may do small web lookups to reduce guesswork (e.g., window-function idioms, date math, safe paging).
+* Findings are summarized and used to refine the next SQL step.
+* The log notes why a search was done, what was learned (briefly), and how the plan changed.
+* **Privacy:** Only the prompt and minimal keywords are used for search. Don’t include secrets in prompts.
+* **Cost/latency:** Search adds calls; expect a bit more time/cost. Turn it off when you don’t need it.
 
-### Good uses of UseSearch
-
-* Clarifying **edge-case** SQL behaviors (e.g., `OFFSET/FETCH` with ties, DATETIMEOFFSET quirks).
-* Fetching **canonical** T-SQL idioms (e.g., “greatest-n-per-group” strategies).
-* Verifying **best practices** (e.g., safe string splitting before bulk insert).
-
-### Not a replacement for your schema
-
-Search supplements the plan; the agent still introspects your **actual** database and uses results it just computed. Search doesn’t override your schema or prior results.
+Good uses: clarifying edge-case SQL behaviors, confirming canonical T-SQL patterns, verifying best practices.
+Search supplements planning; it doesn’t override your actual schema or computed results.
 
 ---
 
-## Database connection logic (how the app picks a connection)
+## Database connection logic
 
-You only see **Db Name** in the UI; connection selection is:
+You only set **Db Name** in the UI. Connection resolution:
 
-1. If a full **ConnectionString** exists in the ViewModel, it’s used as-is (UI does not expose this by default).
-2. Else if a **ServerConnectionString** exists, the app **adds `Database=<Db Name>`** if missing (UI does not expose this by default).
-3. Else it falls back to **LocalDB**:
-```
+1. If a full `ConnectionString` exists in the ViewModel, it’s used.
+2. Else, if a `ServerConnectionString` exists, the app appends `Database=<Db Name>` if missing.
+3. Else, defaults to LocalDB with trusted connection.
 
-Server=(localdb)\MSSQLLocalDB;Database=<Db Name>;Trusted\_Connection=True;TrustServerCertificate=True;
-
-```
-
-On **StartAgent**, the app **creates the DB if needed** and connects.
+On StartAgent, the app creates the database if needed, then connects.
 
 ---
 
 ## Containment (SqlContain)
 
-If **ContainServer** or **ContainDatabase** is checked, the app:
+If **ContainServer** or **ContainDatabase** is checked:
 
-* Derives server/auth/db from the same connection logic.
-* Chooses scope:
-* **Both** if both toggles are on,
-* **Instance** for **ContainServer** only,
-* **Database** for **ContainDatabase** only.
-* Runs the hardener. Non-zero return / exceptions are logged and the run is **aborted**. Appropriate SQL permissions are required.
+* The app derives server/auth/db from the same connection logic.
+* Scope is chosen based on checkboxes: Both, Instance (server), or Database.
+* The hardener runs; non-zero return or exceptions are logged and the run is aborted. Ensure you have required permissions.
 
 ---
 
 ## Import / Export utilities
 
-### ImportFolder
+**ImportFolder**
 
-1. Click **ImportFolder** and pick a folder.
-2. The app:
-* Recursively scans files.
-* Uses the **folder name** (sanitized) as the target table under `dbo`.
-* Loads rows with columns: **Name** (relative path), **Time** (UTC), **Content** (text).
-* Calls `SqlTools.FileImporter.ImportAsync` (creates the table if needed).
-3. Progress appears in the log.
+* Choose a folder to load its files into a table named after the folder (sanitized; schema `dbo`).
+* Each row includes `Name` (relative path), `Time` (UTC), `Content` (file text).
+* `SqlTools.FileImporter.ImportAsync` creates the table if needed.
+* Use cases: analytics on docs/code, indexing, snapshots.
 
-**Use cases:** Bring docs/code/text into SQL for analytics or indexing.
+**ExportSchema**
 
-### ExportSchema
+* Generates CREATE/ALTER DDL via `SqlTools.ExportSchema.Export(conn)`.
+* Output is chunked in the log; use CopyLog to save.
 
-* Click **ExportSchema** to generate **CREATE/ALTER** SQL via `SqlTools.ExportSchema.Export(conn)`.
-* Output is chunked in the log for UI responsiveness—use **CopyLog** to save.
+**ExportData**
 
-### ExportData
-
-* Click **ExportData** to export data as **XML** via `SqlTools.ExportDataXml.Export(conn, includeEmptyTables: true)`.
+* Exports data as XML via `SqlTools.ExportDataXml.Export(conn, includeEmptyTables: true)`.
 * Handy for quick backups and diffs on small datasets.
 
 ---
 
 ## Prompts: open/save
 
-* **Open Prompt…** loads a text file and remembers its path.
-* **Save Prompt** writes back to the remembered path.
-* **Save Prompt As…** lets you select a new file and updates the remembered path.
+* **Open Prompt…** loads text and remembers its path.
+* **Save Prompt** writes to the remembered path.
+* **Save Prompt As…** lets you choose a new file and becomes the new remembered path.
 * The log confirms success or shows errors.
 
 ---
 
-## Logging behavior
+## Logging
 
-* The app buffers many log lines (with a cap) and shows **only the latest slice** for speed.
-* Use:
-* **CopyLog** — copies **all** buffered lines to the clipboard.
-* **ClearLog** — clears buffer and visible pane.
-* **ClearAllButLast** — keep only the last line.
-* Large payloads (schema/data XML) are **chunked** to keep the UI responsive.
-* When **UseSearch** is on, search rationales/summaries are included so you can **audit** how external info influenced planning.
+* The app buffers many lines but shows only the latest chunk for responsiveness.
+* **CopyLog** copies the full buffer; **ClearLog** wipes it; **ClearAllButLast** keeps only the final line.
+* Large outputs (DDL, XML) are chunked for a smooth UI.
+* With UseSearch on, search rationales/summaries are included for auditability.
 
 ---
 
 ## Tips for effective prompts
 
-* Be **goal-oriented**: “Create X if missing, then do Y and summarize Z.”
-* Prefer **clear ordering/limits/filters** to keep result sets small.
-* For **read-only** analysis, enable **QueryOnly** and ask for summaries.
-* If unsure about a tricky SQL detail, **turn on UseSearch** and say why:
-```
-
-Use web search to verify the recommended T-SQL approach for computing month-end boundaries in SQL Server 2019, then implement the query.
-
-```
+* Be goal-oriented: “Create X if missing, then do Y and summarize Z.”
+* Provide ordering/limits/filters to keep result sets small.
+* For read-only analysis, enable QueryOnly and request summarized results.
+* If you’re unsure about a tricky detail, enable UseSearch and mention what to verify (for example: “verify canonical greatest-n-per-group with ties using window functions, then implement…”).
 
 ---
 
 ## Troubleshooting
 
-* **“LLM.OpenAiKeyPath is not set.”**  
-Set the path in `MainWindow.xaml.cs` and ensure the file contains a valid key.
+* **“LLM.OpenAiKeyPath is not set.”**
+  Set the path in `MainWindow.xaml.cs` and ensure the file contains a valid key.
 
-* **Agent doesn’t start when containment is on**  
-Check SQL permissions for SqlContain. The log shows scope and any error. Fix or temporarily disable containment.
+* **Agent won’t start with containment on**
+  Check permissions for SqlContain. The log shows scope/errors. Fix them or disable containment temporarily.
 
-* **“Read-only mode: Potentially mutating SQL detected; blocked.”**  
-Your prompt implies DDL/DML. Turn off **QueryOnly** (unsafe on prod) or rephrase to pure analytics.
+* **“Read-only mode: Potentially mutating SQL detected; blocked.”**
+  Turn off QueryOnly (not recommended on production) or rephrase the prompt to pure analytics.
 
-* **Output pane seems short**  
-It shows only recent lines. Use **CopyLog** for the full transcript.
+* **Output pane looks incomplete**
+  It shows only the newest lines. Use CopyLog for the entire transcript.
 
-* **Search is slow or seems flaky**  
-Web search adds latency and may fail intermittently. The agent will log failures and continue with available context. Turn off **UseSearch** if you need minimal latency.
+* **Search feels slow or flaky**
+  Web search adds latency and may fail occasionally. The agent logs failures and continues. Turn off UseSearch if you need minimal latency.
 
 ---
 
 ## Power-user notes
 
-* **ModelKey** is passed straight to your LLM client. You can switch models per run.
-* **UseIsComplete** asks the LLM to return `<Done>true</Done>` when finished; **MaxEpochs** remains the hard stop.
-* **NaturalLanguageResponse** adds a final LLM pass for a polished summary.
-* The agent keeps a per-epoch trail in `dbo.Episodics` (plans, inputs, results, notes, schema snapshot). Useful for auditing and reproducibility.
-* **UseSearch** is a planning tool. The agent should prefer **your live data** over external claims and will note when external info influenced the plan.
+* `ModelKey` is passed straight to your LLM client; you can change models per run.
+* `UseIsComplete` requests a `<Done>true</Done>` when the objective is met; `MaxEpochs` still hard-caps the run.
+* `NaturalLanguageResponse` adds a final LLM pass for clean prose.
+* The agent records per-epoch trails in `dbo.Episodics` (plans, inputs, results, notes, schema snapshot).
+* `UseSearch` is a planning assist; the agent favors your live data over external claims.
 
 ---
 
 ## Example scenarios
 
 **Safe analytics on production**
-1. Check **QueryOnly** (and optionally **ContainDatabase**/**ContainServer**).
-2. Prompt:
-```
 
-Summarize total sales by month for 2024 and list the top 10 customers by revenue with totals.
-
-```
+* Enable QueryOnly (and optionally containment).
+* Prompt: summarize total sales by month for a year and list the top customers with totals.
 
 **Import a docs folder and analyze**
-1. Click **ImportFolder**, choose the repo/docs folder.
-2. Prompt:
-```
 
-Count how many files mention 'invoice' (case-insensitive). Then list the top 10 file Names by occurrences.
-
-```
+* Use ImportFolder on your repo/docs folder.
+* Prompt: count files mentioning a term (case-insensitive) and list top file names by occurrences.
 
 **Verify tricky SQL behavior with web search**
-1. Enable **UseSearch**.
-2. Prompt:
-```
 
-Verify the canonical T-SQL pattern for "greatest-n-per-group" with ties using window functions, then implement it for our Orders table to find the top 3 items per customer by revenue.
-
-```
+* Enable UseSearch.
+* Prompt: verify a canonical pattern (e.g., top-k per group with ties via window functions) and implement it for your tables.
 
 **Export for migration**
-* **ExportSchema** for DDL and **ExportData** for small XML snapshots.
 
----
-
-## FAQ
-
-**Q: Does web search expose my data?**  
-A: The agent only sends the prompt and minimal keywords required for the lookup. Avoid including secrets in prompts. Your actual table data is not uploaded for search.
-
-**Q: How do I use a non-LocalDB server?**  
-A: Extend the UI to surface **ConnectionString** or **ServerConnectionString** if you need to override. The app will append `Database=<Db Name>` if needed.
-
-**Q: Can I stop mid-run?**  
-A: Yes—**StopAgent** cancels safely and resets UI state.
-
-**Q: Is the Output pane the full transcript?**  
-A: It shows the most recent lines. Use **CopyLog** to capture everything, including web search notes.
+* Use ExportSchema for DDL and ExportData for small XML snapshots.
 
 ---
 
 ## Final notes
 
-* Target framework: **net9.0-windows**, WPF
-* Defaults favor **developer convenience** (LocalDB + trusted connection).
-* For production, combine **least privilege**, **QueryOnly**, **SqlContain** hardening, and enable **UseSearch** only when the task truly benefits from external references.
-```
+* Target framework: `net9.0-windows` (WPF).
+* Defaults favor developer convenience (LocalDB + trusted connection).
+* For production, combine least privilege, QueryOnly, SqlContain hardening, and only enable UseSearch when it truly adds value.
