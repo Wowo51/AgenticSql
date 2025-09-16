@@ -13,6 +13,10 @@ AgenticSql combines **natural language processing** with **iterative agentic rea
 
 ---
 
+Here's an article that explains what AgenticSql does in more detail: [Autonomous Knowledge Evolution](https://www.linkedin.com/pulse/autonomous-knowledge-evolution-transcendai-tech-f9wyc)
+
+---
+
 This is freshly published code, there will be bugs. I'm going to be focused on debugging AgenticSql over the next few days and weeks so expect rapid fixes. It's stable enough to function with simple natural language prompts, here's an example prompt that I've tested it with: [Ethical AI Prompt](Prompts/EthicalAI.txt)
 
 ---
