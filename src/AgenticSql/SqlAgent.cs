@@ -30,6 +30,8 @@ namespace AgenticSql
         public bool NaturalLanguageResponse = false;
         public int MaximumLastQueryOutputLength = 25000;
         public bool UseSearch = false;
+        public bool KeepEpisodics = false;
+        public bool ReadFullSchema = true;
 
         public SqlAgent(SqlStrings sqlStrings, int maxEpochs = 5)
         {
@@ -48,7 +50,10 @@ namespace AgenticSql
             if (string.IsNullOrWhiteSpace(prompt)) prompt = "No prompt provided.";
 
             await _sql.EnsureEpisodicsTableAsync();
-            await ClearEpisodicsAsync(_sql.Database);
+            if (!KeepEpisodics)
+            {
+                await ClearEpisodicsAsync(_sql.Database);
+            }
 
             // 1) Always fetch schema as starting context
             string schemaXml = await _sql.GetSchemaAsyncStr("<Empty/>");
@@ -101,7 +106,15 @@ namespace AgenticSql
                 }
                 queryOutput = await _sql.ExecuteToXmlAsync(xmlReq);
 
-                schemaXml = await _sql.GetSchemaAsyncStr("<Empty/>");
+                if (ReadFullSchema)
+                {
+                    schemaXml = await _sql.GetSchemaAsyncStr("<Empty/>");
+                }
+                else
+                {
+                    schemaXml = "ReadFullSchemaMode = false. So you will have to read the schema with sql and can save schema information in tables.";
+                }
+
                 CallLog($"Query Output: {Environment.NewLine + queryOutput}");
 
                 //if (queryOutput != null && queryOutput != "")
@@ -111,7 +124,7 @@ namespace AgenticSql
 
                 if (QueryOnly)
                 {
-                    return queryInput;
+                    return queryOutput;
                 }
 
                 episodic = await BuildEpisodicAsync(episodic, prompt, queryInput, queryOutput!, epoch, ct);
@@ -216,7 +229,8 @@ namespace AgenticSql
 
             instr.AppendLine("You are assisting a SQL agent.");
             instr.AppendLine("Instructions:");
-            instr.AppendLine("Given the context, write a StateOfProgress and a NextStep. Write a StateOfProgress stating what objectives are complete and what needs to be done. Write a NextStep that is a realistic step towards the objective");
+            instr.AppendLine("Given the context, write a StateOfProgress and a NextStep. Write a StateOfProgress stating what objectives are complete and what needs to be done. Write a NextStep that is a realistic step towards the objective. Any information that does not belong in StateOfProgress or NextStep can be written in Miscellaneous.");
+
             instr.AppendLine();
             instr.AppendLine("=== StateOfProgress ===");
             instr.AppendLine("- Completed: <brief bullet(s) of what is already done/succeeded>");
@@ -225,6 +239,8 @@ namespace AgenticSql
             instr.AppendLine("=== NextStep (realistic) ===");
             instr.AppendLine("<one concrete next action that realistically advances the objective>");
             instr.AppendLine();
+            instr.AppendLine("=== Miscellaneous ===");
+            instr.AppendLine("<miscellaneous information>");
             instr.AppendLine();
             instr.AppendLine("The rest of the information below is context:");
             instr.AppendLine();
