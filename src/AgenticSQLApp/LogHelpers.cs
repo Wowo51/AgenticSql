@@ -21,11 +21,8 @@ namespace AgenticSQLApp
                 return;
             }
 
-            for (int i = 0; i < payload.Length; i += chunkSize)
-            {
-                int len = Math.Min(chunkSize, payload.Length - i);
-                log(payload.Substring(i, len));
-            }
+            log(payload);
+
             log($"[{header}] END");
         }
     }
