@@ -31,13 +31,22 @@ namespace AgenticSQLApp
         private int _maxEpochs = 10;
         private bool _createNewDatabase = true;
         private string? _serverConnectionString; // optional when creating new DB
-        private string _databaseName = "AgenticDb";
+        private string _databaseName = "Meta6";
         private string? _connectionString;       // used when CreateNewDatabase == false
         private string _prompt = "";
         private string _output = "";
         private bool _useIsComplete = true;
         private string _modelKey = "gpt-5-mini";
-
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private readonly FilePromptService _fileService = new();
+        private string? _promptFilePath;
+        private bool _naturalLanguageResponse = false;
+        private CancellationTokenSource? _cts;
+        private bool _keepEpisodics = true;
+        private bool _useSearch = false;
+        private bool _containServer = false;
+        private bool _containDatabase = true;
+        private bool _queryOnly = false;
         public ICommand ImportFolderCommand { get; }
         public ICommand ExportDataCommand { get; }
         public ICommand ExportSchemaCommand { get; }
@@ -45,27 +54,10 @@ namespace AgenticSQLApp
         public ICommand SavePromptCommand { get; }
         public ICommand SavePromptAsCommand { get; }
         public ICommand ClearLogExceptLastCommand { get; }
-
-        private CancellationTokenSource? _cts;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        private readonly FilePromptService _fileService = new();
-
-        private string? _promptFilePath;
-
-        public string? PromptFilePath
-        {
-            get => _promptFilePath;
-            set { _promptFilePath = value; OnPropertyChanged(); }
-        }
-
-        private bool _naturalLanguageResponse = false;
-        public bool NaturalLanguageResponse
-        {
-            get => _naturalLanguageResponse;
-            set { _naturalLanguageResponse = value; OnPropertyChanged(); }
-        }
+        public ICommand StartCommand { get; }
+        public ICommand StopCommand { get; }
+        public ICommand CopyLogCommand { get; }
+        public ICommand ClearLogCommand { get; }
 
         public MainViewModel()
         {
@@ -83,34 +75,48 @@ namespace AgenticSQLApp
         }
 
         // Reactive props
+        public string? PromptFilePath
+        {
+            get => _promptFilePath;
+            set { _promptFilePath = value; OnPropertyChanged(); }
+        }
+
+        public bool NaturalLanguageResponse
+        {
+            get => _naturalLanguageResponse;
+            set { _naturalLanguageResponse = value; OnPropertyChanged(); }
+        }
+
+        public bool KeepEpisodics
+        {
+            get => _keepEpisodics;
+            set { _keepEpisodics = value; OnPropertyChanged(); }
+        }
+
         public string ModelKey
         {
             get => _modelKey;
             set { _modelKey = value; OnPropertyChanged(); }
         }
 
-        private bool _useSearch = false;
         public bool UseSearch
         {
             get => _useSearch;
             set { _useSearch = value; OnPropertyChanged(); }
         }
 
-        private bool _containServer = false;
         public bool ContainServer
         {
             get => _containServer;
             set { _containServer = value; OnPropertyChanged(); }
         }
 
-        private bool _containDatabase = true;
         public bool ContainDatabase
         {
             get => _containDatabase;
             set { _containDatabase = value; OnPropertyChanged(); }
         }
 
-        private bool _queryOnly = false;
         public bool QueryOnly
         {
             get => _queryOnly;
@@ -224,11 +230,6 @@ namespace AgenticSQLApp
             }
         }
 
-        public ICommand StartCommand { get; }
-        public ICommand StopCommand { get; }
-        public ICommand CopyLogCommand { get; }
-        public ICommand ClearLogCommand { get; }
-
         private async Task StartAsync()
         {
             if (IsRunning) return;
@@ -267,11 +268,13 @@ namespace AgenticSQLApp
                 agent.NaturalLanguageResponse = NaturalLanguageResponse;
                 agent.QueryOnly = QueryOnly;
                 agent.UseSearch = UseSearch;
+                agent.KeepEpisodics = KeepEpisodics;
                 if (ContainServer || ContainDatabase)
                 {
                     try
                     {
                         var opts = BuildHardenerOptions();
+
                         Log($"SqlContain: hardening scope = {opts.Scope}, server = '{opts.Server}', database = '{opts.Database}'.");
                         var rc = await Hardener.RunAsync(opts, Log);
                         if (rc != 0)
@@ -403,7 +406,7 @@ namespace AgenticSQLApp
             }
             try
             {
-                Clipboard.SetText(all);
+                Clipboard.SetText(Common.WrapInTags(all, "Log"));
                 // give a small UI hint in the log
                 Log($"[Copied {(_log.Count)} line(s) to clipboard]");
             }
@@ -531,7 +534,8 @@ namespace AgenticSQLApp
                 Scope = scope,
                 Firewall = false,            // not requested here
                 SqlServrPath = null ,         // optional; leave unset unless you need firewall config
-                AllowSkippedDeny = true
+                AllowSkippedDeny = true,
+                AllowMissingTrigger = true,
             };
         }
 
