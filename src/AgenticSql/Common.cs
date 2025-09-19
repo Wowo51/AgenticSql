@@ -167,5 +167,21 @@ namespace AgenticSql
             node.Annotation ??= new XmlSchemaAnnotation();
             node.Annotation.Items.Add(doc);
         }
+
+        public static string WrapInTags(string body, string tagName)
+        {
+            List<string> block = new List<string>();
+            block.Add("<" + tagName + ">");
+            if (body == "")
+            {
+                block.Add("No data available.");
+            }
+            else
+            {
+                block.Add(body);
+            }
+            block.Add("</" + tagName + ">");
+            return string.Join(Environment.NewLine, block);
+        }
     }
 }
