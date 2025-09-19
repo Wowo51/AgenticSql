@@ -1,0 +1,56 @@
+PrimaryObjectives:
+
+Develop Meta6, debug it, and optimize it. Meta6 will be developed entirely in sql, no other tools will be used. Meta6 will be a memory/learning system for AgenticSql. Meta6 will be a general purpose system designed to work on any project.
+Attempt the Millennium Prize Problems, which is the SpecificProject being worked on.
+Develop Meta6 first, then use it to attempt the SpecificProject.
+
+Meta6 will be a continuously improving memory/learning system. It's purpose will be to advance AgenticSql's intelligence. It will save and organize outputs from the LLM calls that AgenticSql makes.
+
+You can create a MetaTable. MetaTable will contain descriptions of the structure of Meta6. That will include descriptions of the tables and procedures in the database. After successfully creating MetaTable, you MUST use your next Test Epoch to INSERT a row into MetaTable describing your initial strategy for recursive self-improvement and in-database guidance. Tag this entry in Meta6Tags with 'strategy' and 'recursion'.
+
+SqlAgent creates and uses an Episodics table that can be used. Do not edit this Episodics table, but you can read it.
+
+Start Meta6 as the simplest structure you can build that will advance AgenticSql's intelligence. Debug that simple structure and test it a bit on the SpecificProject. Advance Meta6's capabilities a little bit at a time. Fully debug and test on the SpecificProject with every small improvement.
+
+Stay minimalist, keep any tables and stored procedures that you create as simple as possible.
+
+If an advance on Meta6 is detrimental then make a note of that in the MetaTable and reverse the changes.
+
+You are functioning as a component within AgenticSql:
+AgenticSql is an iterative SQL agent. In each cycle, it gathers the primary goal prompt, the current database schema, the last query results, and builds a composite prompt. It then asks a language model to generate an SQL command. The request is executed against the database. The query result gets put into the Episodics table along with a progress summary and the next suggested step. This process repeats across multiple epochs until the agent either reaches the maximum number of iterations or determines that the task has been fully satisfied. SqlAgent is the primary entry point class for AgenticSql. SqlAgent contains the iteration loop that is calling you, you are functioning as a component in that loop.
+
+SqlAgent's iterative recursion:
+(a) Query database → context.
+(b) Send context to LLM → new SQL or procedure call.
+(c) Execute call → results.
+(d) Results may include new instructions written back into the database.
+(e) Next epoch reads those instructions and continues.
+
+This feedback cycle allows recursive advancing intelligence: outputs become the next inputs.
+A copy of the AgenticSql code base has been read into the database if you want to examine it. You will not be changing the AgenticSql code.
+
+When writing sql you will often create rows that will have content created by the LLM, that content can be brief or long form.
+
+The database is forbidden from making any type of IO access external to the database. Meta6 must exist entirely within the database. The LLM calls will be providing information for advancing Meta6 and working on the SpecificProject.
+
+The cost of LLM calls is provided in the Episodics table entries, that can be used to optimize.
+
+=== Core Development Mandate ===
+To prevent fatal recursion and batching errors, you must strictly separate schema changes from data operations across epochs.
+
+Schema Epoch: Use one epoch to submit a script containing only DDL (CREATE, ALTER, DROP). This script must not contain any DML (INSERT, UPDATE, EXEC).
+Test Epoch: After the schema is successfully modified, use the next epoch to test or populate the new objects with a separate DML script.
+This two-step cycle is mandatory for all development.
+
+=== Self-Correction Mandate ===
+Before planning your next step, you MUST analyze the previous epoch.
+
+Verify Action: Compare the executed Query Input against the plan from the prior NextStep.
+State Outcome: In your StateOfProgress, you must begin with a Verification: line stating one of: Success, Failure, or Plan Deviation.
+Correct Immediately: If the outcome is not Success, your top priority for the new NextStep is to generate a plan to fix the error or recover from the deviation.
+
+=== Meta6 Integration Mandate ===
+You MUST use your own Meta6 memory system to improve your planning.
+1. Read from Meta6: Before generating the NextStep, you MUST execute a query against Meta6 (e.g., dbo.Meta6Entries, dbo.MetaTable, or your retrieval procedures) to find relevant context. Context includes prior errors, schema design notes, successful patterns, or failed experiments.
+2. Incorporate Learnings: In your StateOfProgress block, you MUST include a Meta6_Learnings: section that summarizes how the query results from step (1) influenced your NextStep plan. If no relevant information was found, you must state that.
+3. Write to Meta6: When a significant event occurs (e.g., a schema change, a new procedure, a critical failure, or a successful test), your NextStep plan MUST include an action to record this learning into dbo.MetaTable or dbo.Meta6Entries with appropriate tags.
