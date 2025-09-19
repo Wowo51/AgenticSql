@@ -43,50 +43,6 @@ namespace AgenticSql
             return CreateAgentAsync(serverConnStr, dbName, maxEpochs);
         }
 
-        ///////// <summary>
-        ///////// Create (if missing) and connect to a database using an explicit server connection string.
-        ///////// Example serverConnectionString: "Server=localhost;Integrated Security=True;TrustServerCertificate=True"
-        ///////// </summary>
-        //////public static SqlAgent CreateAgent(string serverConnectionString, string dbName, int maxEpochs = 5)
-        //////{
-        //////    var sql = new SqlStrings();
-
-        //////    // 1) Ensure DB exists
-        //////    string createXml =
-        //////        $"<CreateDatabaseInput>" +
-        //////        $"  <ServerConnectionString>{XmlEscape(serverConnectionString)}</ServerConnectionString>" +
-        //////        $"  <DbName>{XmlEscape(dbName)}</DbName>" +
-        //////        $"</CreateDatabaseInput>";
-        //////    sql.CreateDatabaseAsyncStr(createXml).GetAwaiter().GetResult();
-
-        //////    // 2) Connect to that DB
-        //////    var builder = new SqlConnectionStringBuilder(serverConnectionString) { InitialCatalog = dbName };
-        //////    string connectXml =
-        //////        $"<ConnectInput>" +
-        //////        $"  <ConnectionString>{XmlEscape(builder.ConnectionString)}</ConnectionString>" +
-        //////        $"</ConnectInput>";
-        //////    sql.ConnectAsyncStr(connectXml).GetAwaiter().GetResult();
-
-        //////    return new SqlAgent(sql, maxEpochs);
-        //////}
-
-        ///////// <summary>
-        ///////// Connect to an existing database using a full connection string.
-        ///////// Example: "Server=localhost;Database=AgenticDb;Integrated Security=True;TrustServerCertificate=True"
-        ///////// </summary>
-        //////public static SqlAgent CreateAgentFromConnectionString(string connectionString, int maxEpochs = 5)
-        //////{
-        //////    var sql = new SqlStrings();
-
-        //////    string connectXml =
-        //////        $"<ConnectInput>" +
-        //////        $"  <ConnectionString>{XmlEscape(connectionString)}</ConnectionString>" +
-        //////        $"</ConnectInput>";
-        //////    sql.ConnectAsyncStr(connectXml).GetAwaiter().GetResult();
-
-        //////    return new SqlAgent(sql, maxEpochs);
-        //////}
-
         /// <summary>
         /// Create (if missing) and connect to a database using a DEFAULT server connection string.
         /// Default can be overridden by env vars: AGENTICSQL_SERVER_CONNSTR or AGENTICSQL_CONNSTR,
