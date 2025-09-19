@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using SqlTools;
+using AgenticSql;
 
 namespace AgenticSQLApp.Actions
 {
@@ -26,6 +27,28 @@ namespace AgenticSQLApp.Actions
             }
 
             string connStr = ConnectionStringHelper.BuildFromViewModel(vm);
+
+            try
+            {
+                var csb = new SqlConnectionStringBuilder(connStr);
+                string dbName = csb.InitialCatalog;
+                if (string.IsNullOrWhiteSpace(dbName))
+                {
+                    _log("ImportFolder: Could not determine database name from the connection string. Aborting.");
+                    return;
+                }
+
+                _log($"ImportFolder: Ensuring database '{dbName}' exists...");
+                // The full connStr is fine; CreateDatabaseAsync will connect to master anyway.
+                await SqlService.CreateDatabaseAsync(connStr, dbName);
+                _log($"ImportFolder: Database '{dbName}' is ready.");
+            }
+            catch (Exception ex)
+            {
+                _log($"ImportFolder: Failed to ensure the database exists. Error: {ex.Message}");
+                return;
+            }
+
             using var conn = new SqlConnection(connStr);
             await conn.OpenAsync();
 
