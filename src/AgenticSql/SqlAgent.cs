@@ -57,6 +57,7 @@ namespace AgenticSql
 
             // 1) Always fetch schema as starting context
             string schemaXml = await _sql.GetSchemaAsyncStr("<Empty/>");
+            schemaXml = Common.WrapInTags(schemaXml, "CurrentSchema");
             //string lastQueryOutput = ""; //this is the short term memory.
             string episodic = await BuildEpisodicAsync("No data yet.", prompt, "No data yet.", "No data yet.", 0, ct);
             string error = "";
