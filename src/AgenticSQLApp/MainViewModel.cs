@@ -31,7 +31,7 @@ namespace AgenticSQLApp
         private int _maxEpochs = 10;
         private bool _createNewDatabase = true;
         private string? _serverConnectionString; // optional when creating new DB
-        private string _databaseName = "Meta6";
+        private string _databaseName = "Meta7";
         private string? _connectionString;       // used when CreateNewDatabase == false
         private string _prompt = "";
         private string _output = "";
