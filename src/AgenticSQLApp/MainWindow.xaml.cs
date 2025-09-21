@@ -23,7 +23,7 @@ namespace AgenticSQLApp
         {
             InitializeComponent();
             DataContext = new MainViewModel();
-            LLM.OpenAiKeyPath = @"";
+            LLM.OpenAiKeyPath = @"C:\Users\wowod\Desktop\Code2025\Pass\openai.txt";
             if (LLM.OpenAiKeyPath == "")
             {
                 throw new InvalidOperationException("LLM.OpenAiKeyPath is not set. It goes just above this.");
