@@ -33,6 +33,11 @@ Here are guides to the interesting parts of the code.</br>
 
 ---
 
+Here is info on using the provided database example, Meta7-stable1.bak. This file is a backup of a self-improving learning system that has begun to work on the Millennium Prize Problems. The Meta7-stable1.bak will have to be loaded into SQL Express/Server and you will need to set the 'DB Name' in AgenticSql to match. The Improve.txt prompt in Prompts matches this database.
+[Database Help](DatabaseHelp.md)
+
+---
+
 ## ⚖️ License
 
 AgenticSql is licensed under the **MIT License**, which grants broad permission to use, modify, and distribute the software.
