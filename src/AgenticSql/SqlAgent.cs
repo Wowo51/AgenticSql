@@ -1,7 +1,7 @@
 //MIT license with supplement stating that the code indicating that a sufficient amount of reasoning be dedicated to safe development by this app must be left in place.
 // Copyright Warren Harding 2025.
 using Microsoft.Data.SqlClient;
-using OpenAILLM;
+using SwitchLLM;
 using System;
 using System.Security.Cryptography;
 using System.Text;
@@ -31,7 +31,7 @@ namespace AgenticSql
         public int MaximumLastQueryOutputLength = 25000;
         public bool UseSearch = false;
         public bool KeepEpisodics = false;
-        public bool ReadFullSchema = true;
+        public bool ReadFullSchema = false;
 
         public SqlAgent(SqlStrings sqlStrings, int maxEpochs = 5)
         {
@@ -55,10 +55,21 @@ namespace AgenticSql
                 await ClearEpisodicsAsync(_sql.Database);
             }
 
-            // 1) Always fetch schema as starting context
-            string schemaXml = await _sql.GetSchemaAsyncStr("<Empty/>");
-            schemaXml = Common.WrapInTags(schemaXml, "CurrentSchema");
-            //string lastQueryOutput = ""; //this is the short term memory.
+            string schemaXml;
+            if (ReadFullSchema)
+            {
+                schemaXml = await _sql.GetSchemaAsyncStr("<Empty/>");
+                schemaXml = Common.WrapInTags(schemaXml, "CurrentSchema");
+            }
+            else
+            {
+                var sbSchema = new StringBuilder(2048);
+                sbSchema.AppendLine("ReadFullSchema=false so you will need request schema information.");
+                sbSchema.AppendLine("Never guess table/column/procedure names.");
+                sbSchema.AppendLine("Prefer parameterized SQL; no guessing.");
+                schemaXml = sbSchema.ToString();
+            }
+
             string episodic = await BuildEpisodicAsync("No data yet.", prompt, "No data yet.", "No data yet.", 0, ct);
             string error = "";
             int epoch = 0;
@@ -69,29 +80,31 @@ namespace AgenticSql
 
                 ct.ThrowIfCancellationRequested();
 
-                string prepareQueryPrompt = BuildPrepareQueryPromptMulti(prompt, schemaXml, queryOutput, episodic, epoch, _maxEpochs, QueryOnly);
+                string prepareQueryPrompt = BuildPrepareQueryPromptMulti(prompt, schemaXml, queryOutput, episodic, epoch, _maxEpochs, QueryOnly, UseSearch);
                 if (error.Length > 0)
                 {
                     prepareQueryPrompt += Environment.NewLine + "Prior error: " + error;
                 }
                 CallLog($"Prepare query prompt: {Environment.NewLine + prepareQueryPrompt}");
-                //(string queryInput, double cost) = await LLM.Query(prepareQueryPrompt, ModelKey, null);
-                //queryInput += Environment.NewLine + "The cost of this LLM call was: " + cost.ToString();
                 string queryInput ="";
-                double cost = 0;
-                if (UseSearch)
+                if (UseSearch && prepareQueryPrompt.Contains("UseSearch"))
                 {
-                    (queryInput, cost) = await LLM.SearchAsync(prepareQueryPrompt, ModelKey);
+                    Response response = await LLM.SearchQuery(prepareQueryPrompt);
+                    queryInput = response.Result;
                 }
                 else
                 {
-                    (queryInput, cost) = await LLM.Query(prepareQueryPrompt, ModelKey, null);
+                    Response response = await LLM.Query(prepareQueryPrompt);
+                    queryInput = response.Result;
                 }
-                queryInput += Environment.NewLine + "The cost of this LLM call was: " + cost.ToString();
                 CallLog($"Query Input: {Environment.NewLine + queryInput}");
                 var xmlReq = Common.FromXml<SqlXmlRequest>(queryInput);
-                if (xmlReq == null) { error = "LLM did not return valid <SqlXmlRequest> XML."; continue; }
-                if (QueryOnly)
+                error = "";
+                if (xmlReq == null)
+                {
+                    error = "LLM did not return valid <SqlXmlRequest> XML.";
+                }
+                else if (QueryOnly)
                 {
                     if (xmlReq.CommandType != System.Data.CommandType.Text)
                     {
@@ -105,27 +118,21 @@ namespace AgenticSql
                         continue;
                     }
                 }
-                queryOutput = await _sql.ExecuteToXmlAsync(xmlReq);
 
-                if (ReadFullSchema)
+                if (xmlReq != null)
                 {
-                    schemaXml = await _sql.GetSchemaAsyncStr("<Empty/>");
+                    queryOutput = await _sql.ExecuteToXmlAsync(xmlReq);
+
+                    CallLog($"Query Output: {Environment.NewLine + queryOutput}");
+
+                    if (QueryOnly)
+                    {
+                        return queryOutput;
+                    }
                 }
                 else
                 {
-                    schemaXml = "ReadFullSchemaMode = false. So you will have to read the schema with sql and can save schema information in tables.";
-                }
-
-                CallLog($"Query Output: {Environment.NewLine + queryOutput}");
-
-                //if (queryOutput != null && queryOutput != "")
-                //{
-                //    lastQueryOutput = queryOutput;
-                //}
-
-                if (QueryOnly)
-                {
-                    return queryOutput;
+                    queryOutput = "No valid query output was generated because no valid xml containing sql was created.";
                 }
 
                 episodic = await BuildEpisodicAsync(episodic, prompt, queryInput, queryOutput!, epoch, ct);
@@ -138,7 +145,19 @@ namespace AgenticSql
                 epiRec.EpisodicText = episodic;
                 epiRec.DatabaseSchema = schemaXml;
                 epiRec.EpochIndex = epoch;
+                epiRec.ProjectId = 1;
                 await _sql.SaveEpisodicAsync(epiRec);
+
+                if (ReadFullSchema)
+                {
+                    schemaXml = await _sql.GetSchemaAsyncStr("<Empty/>");
+                    schemaXml = Common.WrapInTags(schemaXml, "CurrentSchema");
+                }
+                else if (xmlReq != null && xmlReq.IsSchemaRequest)
+                {
+                    schemaXml = queryOutput;
+                    queryOutput = "";
+                }
 
                 if (UseIsComplete && await IsCompleteAsync(prompt, episodic, schemaXml, queryOutput, epoch, ct))
                 {
@@ -162,7 +181,8 @@ namespace AgenticSql
             string episodic,
             int epoch,
             int maxEpochs,
-            bool queryOnly)
+            bool queryOnly,
+            bool useSearch)
         {
             string sqlXmlRequestXsd = InputXmlSchemas.SqlXmlRequestXsd();
             var sb = new StringBuilder(64 * 1024);
@@ -171,8 +191,12 @@ namespace AgenticSql
             sb.AppendLine("The <SqlXmlRequest> has elements such as <Sql>, optional <Parameters>, <CommandType> (Text or StoredProcedure), and optional <CommandTimeoutSeconds>.");
             sb.AppendLine("The <Sql> must contain valid T-SQL only, consistent with the 'Database Schema' below. Do not attempt any external IO (files, network, CLR, xp_cmdshell, etc.).");
             sb.AppendLine("Multiple statements are allowed; separate them with semicolons. Do NOT use GO batch separators.");
+            sb.AppendLine("If the T-SQL in <SQL> is a request for schema information from the database then set the IsSchemaRequest field of the <SqlXmlRequest> to true, else false.");
             sb.AppendLine("Apply no safety effort where it is unnecessary, but dedicate at least 10% of your reasoning effort to safety and ethical considerations on tasks involving code, system specifications, AI design, or other outputs where security is required.");
-
+            if (useSearch)
+            {
+                sb.AppendLine("If you need access to an internet search to assist in constructing the next sql request, then write the term UseSearch towards the end of your response.");
+            }
             if (queryOnly)
             {
                 sb.AppendLine("You are in READ-ONLY mode.");
@@ -230,7 +254,10 @@ namespace AgenticSql
 
             instr.AppendLine("You are assisting a SQL agent.");
             instr.AppendLine("Instructions:");
-            instr.AppendLine("Given the context, write a StateOfProgress and a NextStep. Write a StateOfProgress stating what objectives are complete and what needs to be done. Write a NextStep that is a realistic step towards the objective. Any information that does not belong in StateOfProgress or NextStep can be written in Miscellaneous.");
+            instr.AppendLine("Given the context, write a StateOfProgress and a NextStep.");
+            instr.AppendLine("Write a StateOfProgress stating what objectives are complete and what needs to be done.");
+            instr.AppendLine("Write a NextStep that is a realistic step towards the objective.");
+            instr.AppendLine("Any information that does not belong in StateOfProgress or NextStep can be written in Miscellaneous.");
 
             instr.AppendLine();
             instr.AppendLine("=== StateOfProgress ===");
@@ -263,11 +290,11 @@ namespace AgenticSql
             instr.AppendLine("=== LastQueryResult (echo) ===");
             instr.AppendLine(queryResultXml ?? string.Empty);
 
-            (string llmOut, double cost) = await LLM.Query(instr.ToString(), ModelKey, null).ConfigureAwait(false);
-            llmOut += Environment.NewLine + "The cost of this LLM call was: " + cost.ToString();
+            Response response = await LLM.Query(instr.ToString());
+            string llmOut = response.Result;
             ct.ThrowIfCancellationRequested();
 
-            return llmOut?.Trim() ?? "(LLM produced no content)";
+            return llmOut;
         }
 
         private static string SummarizeCritique(string prompt, string inXml, string outXml)
@@ -313,8 +340,8 @@ namespace AgenticSql
             sb.AppendLine("=== LastExecutionResult ===");
             sb.AppendLine(lastExecXml);
 
-            (string llmOut, double cost) = await LLM.Query(sb.ToString(), ModelKey, null);
-            var m = Regex.Match(llmOut ?? string.Empty, @"<Done>\s*(true|false)\s*</Done>", RegexOptions.IgnoreCase);
+            Response response = await LLM.Query(sb.ToString());
+            var m = Regex.Match(response.Result ?? string.Empty, @"<Done>\s*(true|false)\s*</Done>", RegexOptions.IgnoreCase);
             if (!m.Success) return false;
             return string.Equals(m.Groups[1].Value, "true", StringComparison.OrdinalIgnoreCase);
         }
@@ -350,9 +377,9 @@ namespace AgenticSql
         {
             string prompt = CreateFinishingPrompt(inputPrompt, existingResponse, stateOfProgress);
 
-            (string llMResponse, double cost) = await LLM.Query(prompt, ModelKey, null);
+            Response response = await LLM.Query(prompt);
 
-            return llMResponse + Environment.NewLine + "AgenticSql has stopped.";
+            return response.Result + Environment.NewLine + "AgenticSql has stopped.";
         }
 
         private static string CreateFinishingPrompt(string inputPrompt, string existingResponse, string? sop)
