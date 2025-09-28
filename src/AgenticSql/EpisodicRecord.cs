@@ -12,5 +12,6 @@ namespace AgenticSql
         public string QueryResult { get; set; } = "";
         public string EpisodicText { get; set; } = "";
         public string DatabaseSchema { get; set; } = "";
+        public int ProjectId { get; set; }
     }
 }
