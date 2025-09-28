@@ -15,6 +15,7 @@ using Microsoft.Win32;
 using AgenticSQLApp.Actions;
 using AgenticSQLApp.Services;
 using SqlContain;
+using System.Text.RegularExpressions;
 
 namespace AgenticSQLApp
 {
@@ -31,11 +32,11 @@ namespace AgenticSQLApp
         private int _maxEpochs = 10;
         private bool _createNewDatabase = true;
         private string? _serverConnectionString; // optional when creating new DB
-        private string _databaseName = "Meta7";
+        private string _databaseName = "LongevityResearcher";
         private string? _connectionString;       // used when CreateNewDatabase == false
         private string _prompt = "";
         private string _output = "";
-        private bool _useIsComplete = true;
+        private bool _useIsComplete = false;
         private string _modelKey = "gpt-5-mini";
         public event PropertyChangedEventHandler? PropertyChanged;
         private readonly FilePromptService _fileService = new();
@@ -47,6 +48,7 @@ namespace AgenticSQLApp
         private bool _containServer = false;
         private bool _containDatabase = true;
         private bool _queryOnly = false;
+        private int _currentEpoch = 0;
         public ICommand ImportFolderCommand { get; }
         public ICommand ExportDataCommand { get; }
         public ICommand ExportSchemaCommand { get; }
@@ -58,6 +60,7 @@ namespace AgenticSQLApp
         public ICommand StopCommand { get; }
         public ICommand CopyLogCommand { get; }
         public ICommand ClearLogCommand { get; }
+        public ICommand ExportSchemaXmlCommand { get; }
 
         public MainViewModel()
         {
@@ -72,9 +75,16 @@ namespace AgenticSQLApp
             SavePromptCommand = new RelayCommand(async _ => await _fileService.SavePromptAsync(this, Log), _ => true);
             SavePromptAsCommand = new RelayCommand(async _ => await _fileService.SavePromptAsAsync(this, Log), _ => true);
             ClearLogExceptLastCommand = new RelayCommand(_ => ClearLogExceptLast(), _ => true);
+            ExportSchemaXmlCommand = new RelayCommand(async _ => await DoExportSchemaXmlAsync(), _ => IsNotRunning);
         }
 
         // Reactive props
+        public int CurrentEpoch
+        {
+            get => _currentEpoch;
+            private set { _currentEpoch = value; OnPropertyChanged(); }
+        }
+
         public string? PromptFilePath
         {
             get => _promptFilePath;
@@ -211,6 +221,20 @@ namespace AgenticSQLApp
             }
         }
 
+        private async Task DoExportSchemaXmlAsync()
+        {
+            try
+            {
+                var action = new AgenticSQLApp.Actions.ExportSchemaXmlAction(Log);
+                await action.RunAsync(this);
+            }
+            catch (Exception ex)
+            {
+                Log("ExportSchemaXml error: " + ex.Message);
+            }
+        }
+
+
         /// <summary>
         /// Maximum total lines stored in memory (cap). Default 20,000.
         /// </summary>
@@ -235,6 +259,7 @@ namespace AgenticSQLApp
             if (IsRunning) return;
 
             ClearLog(); // fresh run view
+            CurrentEpoch = 0; // reset epoch display for new run
             IsRunning = true;
             _cts = new CancellationTokenSource();
 
@@ -348,13 +373,15 @@ namespace AgenticSQLApp
         {
             if (string.IsNullOrEmpty(s)) return;
 
+            // Detect "Epoch N starting."
+            TryUpdateEpochFromLogLine(s);
+
             lock (_logLock)
             {
                 _log.Add(s);
                 EnforceCap_NoLock();
             }
 
-            // marshal the UI update if needed
             if (Application.Current?.Dispatcher?.CheckAccess() == true)
             {
                 RefreshVisibleOutput();
@@ -362,6 +389,20 @@ namespace AgenticSQLApp
             else
             {
                 Application.Current?.Dispatcher?.Invoke(RefreshVisibleOutput);
+            }
+        }
+
+        private void TryUpdateEpochFromLogLine(string line)
+        {
+            var m = Regex.Match(line ?? string.Empty, @"^Epoch\s+(\d+)\s+starting\.", RegexOptions.IgnoreCase);
+            if (!m.Success) return;
+
+            if (int.TryParse(m.Groups[1].Value, out int n))
+            {
+                if (Application.Current?.Dispatcher?.CheckAccess() == true)
+                    CurrentEpoch = n;
+                else
+                    Application.Current?.Dispatcher?.Invoke(() => CurrentEpoch = n);
             }
         }
 
