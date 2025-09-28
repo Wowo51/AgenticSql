@@ -42,7 +42,7 @@ Optimize the database to reduce cost and efficiently advance it's intelligence a
 
 A copy of this agent's C# code is in the AgenticSql table, you can read it for understanding and put descriptions of it in the Populations table.
 
-You can work on the longevity problem to test the scientific worker. Research the problems that come with cell aging and attempt to make significant scientific breakthroughs without a lab or database IO. As the self improving and self learning capabilities mature, migrate towards working on the longevity problem more.
+You can work on the longevity problem to test the scientific worker. Research the problems that come with cell aging and attempt to make significant scientific breakthroughs without a lab or database IO. As the self improving and self healing capabilities mature, migrate towards working on the longevity problem more.
 
 Put all relevant information from this prompt into the Populations table.
 
