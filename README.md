@@ -3,25 +3,33 @@
 VITAL_INFO:
 Create a disposable branch of your database if you want to try out this alpha of AgenticSql on your data. AI's have been know to completely destroy the projects they are working on. Sandbox's and backups are crucial.
 
-**AgenticSql** is a natural language interface to a SQL agent. It’s an **agentic system** being designed for:  
-
-- 💬 **Conversational database research** — query a branch of your database in natural language, with iteration for deep research.  
-- 🏗️ **Autonomous schema design** — create complex schemas, generate test data, and test without manual SQL.  
-- 📂 **Evolving document stores** — Advance knowledge autonomously.
-
-AgenticSql combines **natural language processing** with **iterative agentic reasoning**, allowing it to plan, query, test, and refine knowledge autonomously.
+**AgenticSql** is a natural language interface to SQL agent. It’s also an iterative agent capable of building and running autonomous, self improving and self healing systems. With a prompt you can set it forth to autonomously work on complex projects. AgenticSql can build the self improving, self healing system, build the tooling needed to work on your use case, and go to work. Here is an example prompt: [Longevity Researcher Prompt](Prompts/LongevityResearcherPrompt.txt)
 
 ---
 
-Here's an article that explains what AgenticSql does in more detail: [Autonomous Knowledge Evolution](https://www.linkedin.com/pulse/autonomous-knowledge-evolution-transcendai-tech-f9wyc)
+AgenticSql requires SQL Express or SQL Server to be installed. AgenticSql is being distributed as source only at this point so you'll need to compile it. I'm compiling with Visual Studio but Visual Studio Code should compile it without too much trouble. Windows only.</br>
+</br>
+You need an API key for OpenAI or OpenRouter to run AgenticSql. There is a place for a path to your key near the beginning of MainWindow in the AgenticSqlApp project. Select an LLM in the SwitchLLM project.
 
 ---
 
-This is freshly published code, there will be bugs. I'm going to be focused on debugging AgenticSql over the next few days and weeks so expect rapid fixes. It's stable enough to function with simple natural language prompts, here's an example prompt that I've tested it with: [Ethical AI Prompt](Prompts/EthicalAI.txt)
+QuickStart.</br>
+</br>
+Here's a quick list of things to do if you want to try out a fully autonomous, self improving and self healing worker. The worker is set to attempt longevity breakthroughs with regards to cell aging problems.</br>
+</br>
+Load the LongevityResearcher.bak into LocalDB with an Sql Express/Server management app like SSMS.</br>
+Start AgenticSql.</br>
+Paste the [Longevity Researcher Prompt](Prompts/LongevityResearcherPrompt.txt)
+ into AgenticSql's input box.</br>
+Make sure that the 'DB Name' in AgenticSql's UI matches the database name.</br>
+Use AgenticSql's ImportFolder button to load a copy of AgenticSql's source code into the database. Load that source code from an uncompiled folder of code so that you don't bloat the database with compiled binaries.</br>
+Click StartAgent.</br>
+</br>
+AgenticSql did remarkably well building the self improving database on it's own from the [Longevity Researcher Prompt](Prompts/LongevityResearcherPrompt.txt). Typically one has to rebuild the prompt and monitor and tweak things a fair bit. Instead AgenticSql built LongevityResearcher.bak in an almost completely autonomous manner. So if you edit [Longevity Researcher Prompt](Prompts/LongevityResearcherPrompt.txt) to suit your use case hopefully you get similar results. It should be fairly easy to remove the parts about longevity and replace with something completely different. This type of worker should be able to take on many types of scientific problems and other types of problems as well. Backup your database on a regular basis, agentic AI's will reliably destroy you project every now and then.</br>
 
 ---
 
-AgenticSql requires SQL Express or SQL Server to be installed. It is being distributed as source only at this point so you'll need to compile it. I'm compiling with Visual Studio but Visual Studio Code should compile it without too much trouble. Windows only.
+This is freshly published code, there will be bugs. I'm going to be focused on debugging AgenticSql over the next few days and weeks so expect rapid fixes. It's stable enough to function with simple natural language prompts, here's a simple prompt that I've tested it with: [Ethical AI Prompt](Prompts/EthicalAI.txt)
 
 ---
 
@@ -30,11 +38,6 @@ AgenticSql requires SQL Express or SQL Server to be installed. It is being distr
 Here are guides to the interesting parts of the code.</br>
 [AgenticSql Code Guide](AgenticSqlCodeGuide.md) A guide to the core AgenticSql C# library.</br>
 [SqlContain Code Guide](SqlContainCodeGuide.md) A guide to a C# library that contains generated sql code to the database for secure AI development.
-
----
-
-Here is info on using the provided database example, Meta7-stable1.bak. This file is a backup of a self-improving learning system that has begun to work on the Millennium Prize Problems. The Meta7-stable1.bak will have to be loaded into SQL Express/Server and you will need to set the 'DB Name' in AgenticSql to match. The Improve.txt prompt in Prompts matches this database.
-[Database Help](DatabaseHelp.md)
 
 ---
 
