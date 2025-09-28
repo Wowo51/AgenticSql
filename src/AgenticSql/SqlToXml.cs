@@ -18,13 +18,12 @@ namespace AgenticSql
     public sealed class SqlXmlRequest
     {
         public string Sql { get; init; } = string.Empty;
-
         // Use a serializable DTO instead of SqlParameter to allow XSD generation.
         public XmlSerializableSqlParameter[]? Parameters { get; init; }
-
         public CommandType CommandType { get; init; } = CommandType.Text;
         public int? CommandTimeoutSeconds { get; init; }
-    }
+        public bool IsSchemaRequest { get; init; } = false;
+}
 
     // Serializable parameter DTO (XML-friendly)
     public sealed class XmlSerializableSqlParameter
