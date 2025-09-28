@@ -207,15 +207,17 @@ BEGIN
         EpisodeId           UNIQUEIDENTIFIER NOT NULL,
         EpochIndex          INT              NOT NULL,
         [Time]              DATETIME2(3)     NOT NULL CONSTRAINT DF_Episodics_Time DEFAULT SYSUTCDATETIME(),
-        PrepareQueryPrompt  NVARCHAR(MAX)    NOT NULL CONSTRAINT DF_Episodics_Prep  DEFAULT (N''),
-        QueryInput          NVARCHAR(MAX)    NOT NULL CONSTRAINT DF_Episodics_Input DEFAULT (N''),
+        PrepareQueryPrompt  NVARCHAR(MAX)    NOT NULL CONSTRAINT DF_Episodics_Prep   DEFAULT (N''),
+        QueryInput          NVARCHAR(MAX)    NOT NULL CONSTRAINT DF_Episodics_Input  DEFAULT (N''),
         QueryResult         NVARCHAR(MAX)    NOT NULL CONSTRAINT DF_Episodics_Result DEFAULT (N''),
-        EpisodicText        NVARCHAR(MAX)    NOT NULL CONSTRAINT DF_Episodics_Text  DEFAULT (N''),
+        EpisodicText        NVARCHAR(MAX)    NOT NULL CONSTRAINT DF_Episodics_Text   DEFAULT (N''),
         DatabaseSchema      NVARCHAR(MAX)    NOT NULL CONSTRAINT DF_Episodics_Schema DEFAULT (N''),
+        ProjectId           INT              NOT NULL CONSTRAINT DF_Episodics_Project DEFAULT (1),
         CONSTRAINT PK_Episodics PRIMARY KEY CLUSTERED (EpisodeId, EpochIndex)
     );
 
     CREATE INDEX IX_Episodics_Time ON dbo.Episodics ([Time] DESC);
+    CREATE INDEX IX_Episodics_Project_Time ON dbo.Episodics (ProjectId, [Time] DESC);
 END";
             await ExecuteNonQueryAsync(ddl);
         }
@@ -226,20 +228,21 @@ END";
 
             const string sql = @"
 INSERT INTO dbo.Episodics
-    (EpisodeId, EpochIndex, [Time], PrepareQueryPrompt, QueryInput, QueryResult, EpisodicText, [DatabaseSchema])
+    (EpisodeId, EpochIndex, [Time], PrepareQueryPrompt, QueryInput, QueryResult, EpisodicText, [DatabaseSchema], ProjectId)
 VALUES
-    (@EpisodeId, @EpochIndex, @Time, @PrepareQueryPrompt, @QueryInput, @QueryResult, @EpisodicText, @DatabaseSchema);";
+    (@EpisodeId, @EpochIndex, @Time, @PrepareQueryPrompt, @QueryInput, @QueryResult, @EpisodicText, @DatabaseSchema, @ProjectId);";
 
             var p = new Dictionary<string, object?>
             {
                 ["@EpisodeId"] = e.EpisodeId,
                 ["@EpochIndex"] = e.EpochIndex,
-                ["@Time"] = e.Time, // you set DateTime.Now in the record; default only applies if omitted
+                ["@Time"] = e.Time,
                 ["@PrepareQueryPrompt"] = e.PrepareQueryPrompt ?? string.Empty,
                 ["@QueryInput"] = e.QueryInput ?? string.Empty,
                 ["@QueryResult"] = e.QueryResult ?? string.Empty,
                 ["@EpisodicText"] = e.EpisodicText ?? string.Empty,
                 ["@DatabaseSchema"] = e.DatabaseSchema ?? string.Empty,
+                ["@ProjectId"] = e.ProjectId,
             };
 
             await ExecuteNonQueryAsync(sql, p!);
