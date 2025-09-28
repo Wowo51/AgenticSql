@@ -1,7 +1,6 @@
 # AgenticSql: Developer Guide
 
-This guide shows how to use the library in real code, with **`SqlAgent`** as the primary entry point. It also covers the lower-level XML/string façade (`SqlStrings`) if you need finer control.
-New: the agent can optionally call your LLM’s **Search** endpoint to use *internet results* during planning.
+This guide shows how to use the library in real code, with **`SqlAgent`** as the primary entry point, and the lower-level XML/string façade (`SqlStrings`) for finer control.
 
 ---
 
@@ -26,9 +25,11 @@ class Program
         // 2) Optional agent configuration (see “SqlAgent knobs” below)
         agent.ModelKey = "gpt-5-nano";
         agent.UseIsComplete = true;            // let the agent decide when done
-        agent.QueryOnly = false;               // set true for read-only mode
-        agent.NaturalLanguageResponse = false; // last-pass humanized answer
-        agent.UseSearch = true;                // <-- NEW: enable internet search
+        agent.QueryOnly = false;               // true => read-only mode
+        agent.NaturalLanguageResponse = false; // final NL synthesis
+        agent.UseSearch = true;                // enable web search for planning
+        agent.ReadFullSchema = false;          // true => fetch full schema upfront
+        agent.KeepEpisodics = false;           // false => clear dbo.Episodics at start
 
         // 3) Run an objective
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -47,9 +48,9 @@ class Program
 
 ## Creating an `SqlAgent`
 
-`SqlAgent` instances are created through **`AgentFactory`** (constructors are private):
+Create instances via **`AgentFactory`**:
 
-* **Create (if missing) & connect using an explicit server connection string**
+* **Create (if missing) & connect using a server connection**
 
   ```csharp
   var agent = await AgentFactory.CreateAgentAsync(
@@ -59,7 +60,7 @@ class Program
   );
   ```
 
-* **Connect to an existing database using a full connection string**
+* **Connect to an existing DB with a full connection string**
 
   ```csharp
   var agent = await AgentFactory.CreateAgentFromConnectionStringAsync(
@@ -68,18 +69,12 @@ class Program
   );
   ```
 
-* **Use a default server (good for dev/localdb)**
+* **Use default server (great for local dev / (localdb)\MSSQLLocalDB)**
 
   ```csharp
   // Env overrides honored: AGENTICSQL_SERVER_CONNSTR or AGENTICSQL_CONNSTR
   var agent = await AgentFactory.CreateAgentWithDefaultServerAsync("AgenticDb", maxEpochs: 5);
   ```
-
-> Under the hood the factory:
->
-> 1. emits `<CreateDatabaseInput/>` XML to ensure the DB exists,
-> 2. emits `<ConnectInput/>` XML to attach, and
-> 3. returns a ready `SqlAgent`.
 
 ---
 
@@ -93,108 +88,99 @@ string output = await agent.RunAsync(
 );
 ```
 
-* The agent iterates up to `maxEpochs`.
+**How each epoch works:**
 
-* Each epoch it:
+1. **Context prep**
 
-  1. Retrieves schema (`GetSchemaAsyncStr`)
-  2. **Plans**: asks your LLM to produce a strict `<SqlXmlRequest>` payload
+   * If `ReadFullSchema == true`: fetch full schema via `GetSchemaAsyncStr("<Empty/>")` and wrap as `<CurrentSchema>…</CurrentSchema>`.
+   * Else: include a short note telling the model to explicitly request schema and **never guess** names.
+2. **Plan**: ask the LLM to return a strict `<SqlXmlRequest>` payload.
 
-     * If `agent.UseSearch == true` → calls `OpenAILLM.LLM.SearchAsync(...)`
-     * Else → calls `OpenAILLM.LLM.Query(...)`
-  3. Executes it (`ExecuteToXmlAsync`)
-  4. If it was a query, folds results into context
-  5. Optionally checks **“Done?”** with `UseIsComplete`
+   * If `UseSearch == true`, the planning call goes through **`LLM.SearchQuery(...)`**.
+   * Otherwise it goes through **`LLM.Query(...)`**.
+3. **Execute**: send the `<SqlXmlRequest>` to `ExecuteToXmlAsync(...)`.
+4. **Schema refresh (conditional)**:
 
-* All steps, inputs, and outputs are **logged** through your `CallLog` delegate.
-
-* The agent writes a rolling **Episodic** trail to `dbo.Episodics` (auto-created).
+   * If `ReadFullSchema == true`: refresh schema again.
+   * Else if `<SqlXmlRequest>` set `IsSchemaRequest=true`: take the execution output as the new schema snapshot for next epoch.
+5. **Episodic**: synthesize a rolling StateOfProgress/NextStep and persist to `dbo.Episodics`.
+6. **Done check**: if `UseIsComplete == true`, ask the LLM to return `<Done>true|false</Done>`; stop early on `true`.
 
 **Return value**:
 
-* If `NaturalLanguageResponse == false` (default), you get a **Final State** text that includes the last query XML.
-* If `NaturalLanguageResponse == true`, the agent makes one last LLM pass to produce a **clean, human-readable answer**.
+* If `NaturalLanguageResponse == false` (default), you get a **Final State** text block containing the last query XML (if any).
+* If `true`, the agent does a final `LLM.Query(...)` pass to produce a concise **plain-text** answer.
 
 ---
 
-## Internet Search (what it changes)
+## Internet Search (planning only)
 
-When **`UseSearch = true`**, planning uses the LLM’s search-capable endpoint:
+When **`UseSearch = true`**, the planning step uses **`SwitchLLM.LLM.SearchQuery(...)`**. Execution against SQL is unchanged.
 
-* The agent sends the same planning prompt, but through `LLM.SearchAsync(...)`.
-* The LLM may ground its reasoning on fresh web snippets, then must still return **only** a valid `<SqlXmlRequest>...</SqlXmlRequest>`.
-* Execution against SQL is unchanged; only the **planning** call differs.
-* The agent appends the **reported token/search cost** to the `QueryInput` episodic field each epoch.
-
-> Tip: Use Search for open-ended analytics (“industry-standard date dimensions,” “best-practice indexing steps”) or when your prompt benefits from up-to-date references. Keep `QueryOnly=true` if you just want safe exploration.
+> The planning prompt contains the phrase “write the term `UseSearch`…”. Internally, the agent already routes to **Search** whenever `UseSearch` is on; you don’t need to add anything else.
 
 ---
 
-## `SqlAgent` knobs (properties you can set)
+## `SqlAgent` knobs (properties)
 
 ```csharp
-agent.ModelKey = "gpt-5-nano";   // passed to OpenAILLM.LLM.* calls
-agent.UseIsComplete = true;      // ask LLM <Done>true/false</Done> each epoch
-agent.QueryOnly = false;         // true = hard read-only mode (see below)
-agent.NaturalLanguageResponse = false;  // final NL synthesis pass
-agent.MaximumLastQueryOutputLength = 25_000; // context size guard
-agent.UseSearch = true;          // NEW: use internet search during planning
+agent.ModelKey = "gpt-5-nano";              // (forwarded by your LLM layer if supported)
+agent.UseIsComplete = true;                 // ask LLM <Done>true/false</Done>
+agent.QueryOnly = false;                    // true => hard read-only enforcement
+agent.NaturalLanguageResponse = false;      // final natural-language synthesis
+agent.MaximumLastQueryOutputLength = 25_000;// size guard when echoing last results
+agent.UseSearch = true;                     // use web search for planning
+agent.ReadFullSchema = false;               // true => fetch full schema every epoch
+agent.KeepEpisodics = false;                // false => clear dbo.Episodics at run start
 ```
 
 ### Read-Only Mode (`QueryOnly = true`)
 
 * Blocks anything that could change state.
-* Enforcement layers:
+* Enforcement:
 
-  * Requires `CommandType == Text`
-  * Runs **`AgenticSql.Security.SqlMutationScanner`** on the planned SQL
-  * If anything risky is detected (INSERT/UPDATE/DDL/etc.), the step is rejected
-* When enabled, the agent returns the **LLM’s `<SqlXmlRequest>`** it produced rather than the final-state XML.
+  * Requires `CommandType == Text`.
+  * Runs **`AgenticSql.Security.SqlMutationScanner`** (detects DML/DDL/temp tables/transactions/perms/external, etc.).
+  * If risky → the step is rejected.
+* **Return behavior** in read-only mode: the agent **executes allowed queries** and **returns the SQL result XML immediately** (it does **not** return the raw `<SqlXmlRequest>`).
 
-Use this in UIs or when exploring a production database.
+Use this for dashboards, UIs, or initial exploration of production data.
 
 ---
 
-## What gets saved to `dbo.Episodics`?
+## What’s persisted in `dbo.Episodics`?
 
 One row per epoch:
 
 * `EpisodeId` (guid), `EpochIndex`, `Time`
-* `PrepareQueryPrompt` (full planning prompt)
-* `QueryInput` (the `<SqlXmlRequest>` the LLM returned **plus cost**)
+* `PrepareQueryPrompt` (full planning prompt shown to LLM)
+* `QueryInput` (the `<SqlXmlRequest>` returned by LLM)
 * `QueryResult` (the `<SqlResult>` XML from execution)
-* `EpisodicText` (rolling StateOfProgress/NextStep)
-* `DatabaseSchema` (schema snapshot)
+* `EpisodicText` (rolling StateOfProgress / NextStep)
+* `DatabaseSchema` (schema snapshot or guidance text when `ReadFullSchema=false`)
+* `ProjectId` (int)
 
-The table is **auto-created** and **cleared at run start**:
-
-```csharp
-await _sql.EnsureEpisodicsTableAsync();
-await SqlAgent.ClearEpisodicsAsync(_sql.Database);
-```
+The table is **auto-created**. It is **cleared at run start only when** `KeepEpisodics == false`.
 
 ---
 
-## Advanced: Use the string/XML façade (`SqlStrings`)
+## Advanced: the XML/string façade (`SqlStrings`)
 
-Everything the agent does is available directly via **`SqlStrings`**. Useful if you:
-
-* generate XML yourself,
-* want to drive the DB without the agent loop,
-* or need to unit test specific commands.
+Everything the agent does is available directly via **`SqlStrings`**.
 
 ### Connect
 
 ```csharp
 var sql = new SqlStrings();
-string connectXml = $@"<ConnectInput><ConnectionString>{System.Security.SecurityElement.Escape(connStr)}</ConnectionString></ConnectInput>";
+string connectXml =
+  $@"<ConnectInput><ConnectionString>{System.Security.SecurityElement.Escape(connStr)}</ConnectionString></ConnectInput>";
 string result = await sql.ConnectAsyncStr(connectXml); // <Result success="true" ...
 ```
 
-### Get schema (as structured XML)
+### Get schema as structured XML
 
 ```csharp
-string schemaXml = await sql.GetSchemaAsyncStr("<Empty/>"); // see InputXmlSchemas.EmptyXsd()
+string schemaXml = await sql.GetSchemaAsyncStr("<Empty/>");
 ```
 
 ### Execute text SQL (query or non-query)
@@ -207,7 +193,7 @@ var req = new SqlStrings.SqlTextRequest {
 string xml = await sql.ExecuteAsync(req); // <Result success="true"><Rows>...
 ```
 
-**String-in helper**:
+**String-in helper:**
 
 ```csharp
 string inXml = """
@@ -222,7 +208,7 @@ string inXml = """
 string outXml = await sql.ExecuteAsyncStr(inXml);
 ```
 
-### Execute with full `<SqlXmlRequest>` (richer shape, result-sets, params echo, messages)
+### Execute a full `<SqlXmlRequest>`
 
 ```csharp
 var x = new SqlXmlRequest {
@@ -232,7 +218,7 @@ var x = new SqlXmlRequest {
 string xml = await sql.ExecuteToXmlAsync(x); // returns <SqlResult> ... </SqlResult>
 ```
 
-**String-in**:
+**String-in:**
 
 ```csharp
 string inXml = """
@@ -255,62 +241,60 @@ string xml = await sql.ExecuteToXmlAsyncStr(inXml);
 
 ## Schema/XSD helpers (great for LLM prompts)
 
-Embed live XSDs to make the LLM produce valid XML:
-
 ```csharp
-string xsd = InputXmlSchemas.SqlXmlRequestXsd();   // XSD for <SqlXmlRequest>
-string xsd2 = InputXmlSchemas.SqlTextRequestXsd(); // XSD for <SqlTextRequest>
-var all = InputXmlSchemas.All();                   // Dictionary<string,string> of all XSDs
+string xsd  = InputXmlSchemas.SqlXmlRequestXsd();   // XSD for <SqlXmlRequest>
+string xsd2 = InputXmlSchemas.SqlTextRequestXsd();  // XSD for <SqlTextRequest>
+var all     = InputXmlSchemas.All();                // Dictionary<string,string> of all XSDs
 ```
 
-General-purpose XML helpers in `Common`:
+General helpers in `Common`:
 
-* `Common.ExtractXml(string)` – pulls the first XML blob from noisy text
-* `Common.FromXml<T>(string)` – deserialize if valid
-* `Common.ToXmlSchema<T>()` – generate an XSD for a .NET type
+* `Common.ExtractXml(string)` – pulls the first XML blob from noisy text.
+* `Common.FromXml<T>(string)` – deserialize if valid.
+* `Common.ToXmlSchema<T>()` – generate an XSD for a .NET type (adds list/array notes).
 
 ---
 
 ## Security posture
 
-* The agent does **not** request external IO *inside SQL* (no files, network, CLR, `xp_cmdshell`, etc.).
-* With **`UseSearch = true`**, the LLM’s **planning** call may fetch web content, but SQL execution remains local and constrained.
+* Agent never asks SQL to do external IO (files/network/CLR/`xp_cmdshell`, etc.).
+* With **`UseSearch = true`**, only the **planning** call may use the web; SQL execution stays local.
 * In **read-only** mode:
 
-  * forces `CommandType=Text`
-  * runs **`SqlMutationScanner`** to detect DML/DDL, temp tables, transactions, perms, external/linked server usage, etc.
-* Still follow best practice:
+  * Forces `CommandType=Text`.
+  * Scans the SQL with `SqlMutationScanner`.
+* Still follow best practices:
 
-  * Use least-privilege credentials (e.g., `SELECT` only for read-only).
-  * Consider running in a never-commit transaction for exploration.
-  * Keep `TrustServerCertificate=True` only where appropriate.
+  * Least-privilege DB credentials (e.g., `SELECT` only for read-only).
+  * Consider a rollback-only transaction sandbox for ad-hoc exploration.
+  * Use `TrustServerCertificate=True` only where appropriate.
 
 ---
 
 ## Cancellation & logging
 
-* `RunAsync` accepts a `CancellationToken`. If you cancel mid-epoch, the current step throws and the agent stops.
-* All significant steps are surfaced via `CallLog(string)` so you can mirror progress into a UI.
+* `RunAsync` accepts a `CancellationToken`. Cancelling mid-epoch will throw and stop the agent.
+* All major steps are surfaced through `CallLog(string)` for UI/console tracing.
 
 ---
 
 ## Troubleshooting
 
-* **Malformed XML from LLM / Search**
-  The agent uses `Common.FromXml<T>` with `ExtractXml` to tolerate leading chatter. If models still emit broken XML, show the **XSD** (`InputXmlSchemas.SqlXmlRequestXsd()`) in your prompt and require: “Return ONLY one well-formed `<SqlXmlRequest>...</SqlXmlRequest>`.”
+* **Malformed XML from LLM/Search**
+  The agent uses `Common.FromXml<T>` with `ExtractXml` to be tolerant. Show the XSD (`InputXmlSchemas.SqlXmlRequestXsd()`) in prompts and require “Return ONLY one well-formed `<SqlXmlRequest>...</SqlXmlRequest>`.”
 
 * **Read-only block**
-  “Read-only mode: Potentially mutating SQL detected; blocked.” → The mutation scanner matched INSERT/UPDATE/DDL/etc. Rephrase the objective for descriptive analytics only, or disable `QueryOnly` (not recommended on prod).
+  If you see: “Read-only mode: Potentially mutating SQL detected; blocked.” → The mutation scanner matched DML/DDL/etc. Rephrase the objective for descriptive analytics or disable `QueryOnly` (not recommended on prod).
 
-* **Reserved word column names**
-  If you store schema text, use a non-reserved column like `DatabaseSchema` (already implemented).
+* **Schema handling confusion**
+  Set `ReadFullSchema = true` to always fetch a fresh snapshot each epoch. Otherwise, explicitly request schema via `<SqlXmlRequest IsSchemaRequest="true">`.
 
 * **Local dev connection**
-  Defaults to `(localdb)\MSSQLLocalDB` with Integrated Security. Override via `AGENTICSQL_SERVER_CONNSTR` or pass an explicit connection string to the factory.
+  Defaults to `(localdb)\MSSQLLocalDB` with Integrated Security. Override via `AGENTICSQL_SERVER_CONNSTR` / `AGENTICSQL_CONNSTR` or pass a specific connection string to the factory.
 
 ---
 
-## Minimal examples by task
+## Minimal task patterns
 
 **List tables (read-only + search):**
 
@@ -318,8 +302,8 @@ General-purpose XML helpers in `Common`:
 agent.QueryOnly = true;
 agent.UseSearch = true;
 string final = await agent.RunAsync(
-    "Show me all tables and their row counts. If helpful, ground on best-practice queries.",
-    s => Console.WriteLine(s)
+    "Show all tables and their row counts. Use best-practice queries.",
+    Console.WriteLine
 );
 ```
 
@@ -329,23 +313,23 @@ string final = await agent.RunAsync(
 agent.QueryOnly = false;
 agent.UseSearch = false;
 string final = await agent.RunAsync(
-    "If dbo.Customers is missing, create it (Id int PK, Name nvarchar(200)), then select TOP(5) *.",
+    "If dbo.Customers is missing, create it (Id int PK, Name nvarchar(200)); then select TOP(5) *.",
     Console.WriteLine
 );
 ```
 
-**Natural language final answer + search:**
+**Natural-language final answer + search:**
 
 ```csharp
 agent.NaturalLanguageResponse = true;
 agent.UseSearch = true;
 string final = await agent.RunAsync(
-    "Summarize total sales by month for 2024, then produce a short plain-text explanation.",
+    "Summarize total sales by month for 2024 and provide a short plain-text explanation.",
     Console.WriteLine
 );
 ```
 
-**Drive the DB yourself (no agent):**
+**Drive DB directly (no agent loop):**
 
 ```csharp
 var sql = new SqlStrings();
@@ -364,4 +348,4 @@ string result = await sql.ExecuteAsyncStr("""
 
 * Target framework: **.NET 9.0**
 * ADO provider: **Microsoft.Data.SqlClient 6.1.1**
-* The agent logs the **token/search cost** it gets back from `OpenAILLM.LLM.Query/SearchAsync` into the `QueryInput` episodic field for each epoch.
+* LLM integration: **`SwitchLLM.LLM.Query(...)`** and **`SwitchLLM.LLM.SearchQuery(...)`** are used by the agent. (The `ModelKey` is exposed on `SqlAgent`; pass/consume it per your `SwitchLLM` implementation if desired.)
