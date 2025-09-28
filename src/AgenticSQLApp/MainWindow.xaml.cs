@@ -9,8 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
-using OpenAILLM;
+using System.IO;
 
 namespace AgenticSQLApp
 {
@@ -23,10 +22,12 @@ namespace AgenticSQLApp
         {
             InitializeComponent();
             DataContext = new MainViewModel();
-            LLM.OpenAiKeyPath = @"C:\Users\wowod\Desktop\Code2025\Pass\openai.txt";
-            if (LLM.OpenAiKeyPath == "")
+            OpenAILLM.LLM.OpenAiKeyPath = @"";
+            OpenRouter.LLM.KeyPath = @"";
+            OpenRouter.LLM.Initialize();
+            if (OpenAILLM.LLM.OpenAiKeyPath == "" && OpenRouter.LLM.KeyPath == "")
             {
-                throw new InvalidOperationException("LLM.OpenAiKeyPath is not set. It goes just above this.");
+                throw new InvalidOperationException("No key path set. It goes just above this. Set the defaults in LLMSwitch too.");
             }
         }
 
