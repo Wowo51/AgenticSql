@@ -35,9 +35,11 @@
                         Command="{Binding StopCommand}"
                         MinWidth="120" Margin="0,0,10,10"/>
 
-                    <StackPanel Margin="0,0,10,10" MinWidth="70">
-                        <TextBlock Text="MaxEpochs"/>
-                        <TextBox Text="{Binding MaxEpochs, UpdateSourceTrigger=PropertyChanged}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Center">
+                        <TextBlock Text="MaxEpochs:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox Text="{Binding MaxEpochs, UpdateSourceTrigger=PropertyChanged}"
+                             Width="60"
+                             VerticalAlignment="Center"/>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Bottom">
@@ -72,9 +74,11 @@
                         <TextBox Text="{Binding ServerConnectionString, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>-->
 
-                    <StackPanel Margin="0,0,10,10" MinWidth="180">
-                        <TextBlock Text="Db Name"/>
-                        <TextBox Text="{Binding DatabaseName, UpdateSourceTrigger=PropertyChanged}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Center">
+                        <TextBlock Text="Db Name:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox Text="{Binding DatabaseName, UpdateSourceTrigger=PropertyChanged}"
+                             Width="160"
+                             VerticalAlignment="Center"/>
                     </StackPanel>
 
                     <!-- When CreateNewDatabase = false -->
@@ -101,7 +105,10 @@
                     <Button Content="ExportSchema" MinWidth="120" Margin="0,0,10,10"
                         Command="{Binding ExportSchemaCommand}" />
 
-                    <StackPanel Margin="0,0,10,10" MinWidth="150">
+                    <Button Content="ExportSchemaXml" MinWidth="140" Margin="0,0,10,10"
+                        Command="{Binding ExportSchemaXmlCommand}" />
+
+                    <StackPanel Margin="0,0,10,10" MinWidth="150" Visibility="Collapsed">
                         <TextBlock Text="ModelKey"/>
                         <TextBox Text="{Binding ModelKey, UpdateSourceTrigger=PropertyChanged}"
                             ToolTip="LLM model key (e.g., gpt-4.1-nano, gpt-4o, o4-mini, etc.)"/>
@@ -133,6 +140,13 @@
                               IsChecked="{Binding KeepEpisodics}"
                               IsEnabled="{Binding IsNotRunning}"
                               ToolTip="When checked, existing rows in dbo.Episodics are preserved on start; when unchecked, they are deleted." />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Bottom">
+                        <TextBlock Text="Epoch:" Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding CurrentEpoch}" FontWeight="Bold"/>
+                        <TextBlock Text="/" Margin="4,0,4,0"/>
+                        <TextBlock Text="{Binding MaxEpochs}"/>
                     </StackPanel>
                 </WrapPanel>
             </ScrollViewer>
