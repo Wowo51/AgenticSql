@@ -3,7 +3,21 @@
 VITAL_INFO:
 Create a disposable branch of your database if you want to try out this alpha of AgenticSql on your data. AI's have been know to completely destroy the projects they are working on. Sandbox's and backups are crucial.
 
-**AgenticSql** is a natural language interface to SQL agent. It’s also an iterative agent capable of building and running autonomous, self improving and self healing systems. With a prompt you can set it forth to autonomously work on complex projects. AgenticSql can build the self improving, self healing system, build the tooling needed to work on your use case, and go to work. Here is an example prompt: [Longevity Researcher Prompt](Prompts/LongevityResearcherPrompt.txt)
+---
+
+**AgenticSql** is a natural language interface to SQL agent. It’s also an iterative agent capable of building and running autonomous, self improving and self healing systems. With a prompt you can set it forth to autonomously work on complex projects. AgenticSql can build the self improving, self healing system, build the tooling needed to work on your use case, and go to work.
+
+---
+
+Here is a comparison of ten different self improving software architectures. Twelve different properties were compared. ChatGPT-5 provided unbiased 1-10 rankings.
+![Compare](Compare.jpg)
+![Ranked](Ranked.jpg)
+Here's a link to the full comparison article on LinkedIn:
+[https://www.linkedin.com/pulse/ten-self-improving-software-architectures-transcendai-tech-07xfc](https://www.linkedin.com/pulse/ten-self-improving-software-architectures-transcendai-tech-07xfc)
+
+---
+
+Here is an example prompt: [Longevity Researcher Prompt](Prompts/LongevityResearcherPrompt.txt)
 
 ---
 
