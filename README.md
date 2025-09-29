@@ -10,8 +10,8 @@ Create a disposable branch of your database if you want to try out this alpha of
 ---
 
 Here is a comparison of ten different self improving software architectures. Twelve different properties were compared. ChatGPT-5 provided unbiased 1-10 rankings.
-![Compare](Compare.jpg)
-![Ranked](Ranked.jpg)
+![Compare](Compare.png)
+![Ranked](Ranked.png)
 Here's a link to the full comparison article on LinkedIn:
 [https://www.linkedin.com/pulse/ten-self-improving-software-architectures-transcendai-tech-07xfc](https://www.linkedin.com/pulse/ten-self-improving-software-architectures-transcendai-tech-07xfc)
 
