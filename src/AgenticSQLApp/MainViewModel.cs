@@ -32,12 +32,11 @@ namespace AgenticSQLApp
         private int _maxEpochs = 10;
         private bool _createNewDatabase = true;
         private string? _serverConnectionString; // optional when creating new DB
-        private string _databaseName = "LongevityResearcher";
+        private string _databaseName = "AGI";
         private string? _connectionString;       // used when CreateNewDatabase == false
         private string _prompt = "";
         private string _output = "";
         private bool _useIsComplete = false;
-        private string _modelKey = "gpt-5-mini";
         public event PropertyChangedEventHandler? PropertyChanged;
         private readonly FilePromptService _fileService = new();
         private string? _promptFilePath;
@@ -101,12 +100,6 @@ namespace AgenticSQLApp
         {
             get => _keepEpisodics;
             set { _keepEpisodics = value; OnPropertyChanged(); }
-        }
-
-        public string ModelKey
-        {
-            get => _modelKey;
-            set { _modelKey = value; OnPropertyChanged(); }
         }
 
         public bool UseSearch
@@ -289,7 +282,6 @@ namespace AgenticSQLApp
                     Log($"Connected to existing database '{dbShown}' using {(string.IsNullOrWhiteSpace(ConnectionString) ? "auto-generated" : "provided")} connection string.");
                 }
                 agent.UseIsComplete = UseIsComplete;
-                agent.ModelKey = ModelKey;
                 agent.NaturalLanguageResponse = NaturalLanguageResponse;
                 agent.QueryOnly = QueryOnly;
                 agent.UseSearch = UseSearch;
