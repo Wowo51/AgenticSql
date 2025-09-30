@@ -24,7 +24,6 @@ namespace AgenticSql
     {
         private readonly SqlStrings _sql = null!;
         private readonly int _maxEpochs;
-        public string ModelKey = "gpt-5-nano";
         public bool UseIsComplete = true;
         public bool QueryOnly = false;
         public bool NaturalLanguageResponse = false;
