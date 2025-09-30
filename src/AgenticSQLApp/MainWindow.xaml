@@ -62,31 +62,12 @@
                           ToolTip="When enabled, the agent will produce a natural-language response in addition to any structured output."/>
                     </StackPanel>
 
-                    <!--<StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Bottom">
-                        <CheckBox Content="EnsureNewDatabase"
-                                  IsChecked="{Binding CreateNewDatabase}"/>
-                    </StackPanel>-->
-
-                    <!-- When CreateNewDatabase = true -->
-                    <!--<StackPanel Margin="0,0,10,10" MinWidth="280"
-                                Visibility="{Binding CreateNewDatabase, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="Server ConnectionString (optional; defaults to (localdb)\MSSQLLocalDB)"/>
-                        <TextBox Text="{Binding ServerConnectionString, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>-->
-
                     <StackPanel Orientation="Horizontal" Margin="0,0,10,10" VerticalAlignment="Center">
                         <TextBlock Text="Db Name:" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <TextBox Text="{Binding DatabaseName, UpdateSourceTrigger=PropertyChanged}"
                              Width="160"
                              VerticalAlignment="Center"/>
                     </StackPanel>
-
-                    <!-- When CreateNewDatabase = false -->
-                    <!--<StackPanel Margin="0,0,10,10" MinWidth="360"
-                                Visibility="{Binding NotCreateNewDatabase, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="ConnectionString (existing DB)"/>
-                        <TextBox Text="{Binding ConnectionString, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>-->
 
                     <!-- Logging controls -->
                     <Button Content="CopyLog" MinWidth="100" Margin="0,0,10,10"
