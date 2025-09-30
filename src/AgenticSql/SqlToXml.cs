@@ -79,7 +79,7 @@ namespace AgenticSql
 
                 // Auto add return value for procs if not present
                 if (request.CommandType == CommandType.StoredProcedure &&
-                    cmd.Parameters["@RETURN_VALUE"] == null)
+                    !cmd.Parameters.Contains("@RETURN_VALUE"))
                 {
                     cmd.Parameters.Add(new SqlParameter("@RETURN_VALUE", SqlDbType.Int)
                     {
