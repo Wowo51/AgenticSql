@@ -7,7 +7,7 @@ Create a disposable branch of your database if you want to try out this alpha of
 
 ---
 ![Compare](Compare.png)</br>
-![Ranked](Ranked.jpg)</br>
+![Ranked](Ranked.png)</br>
 [Complete article on LinkedIn](https://www.linkedin.com/pulse/ten-self-improving-software-architectures-transcendai-tech-07xfc/)</br>
 ---
 
