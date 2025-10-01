@@ -6,6 +6,10 @@ Create a disposable branch of your database if you want to try out this alpha of
 **AgenticSql** is a natural language interface to SQL. It’s also an iterative agent capable of building and running autonomous, self improving and self healing systems. With a prompt you can set it forth to autonomously work on complex projects. AgenticSql can build the self improving, self healing system, build the tooling needed to work on your use case, and go to work. Here is an example prompt: [BootstrapPrompt](Prompts/Bootstrap.txt)
 
 ---
+[Compare](Compare.png)
+[Ranked](Ranked.jpg)
+[Complete article on LinkedIn](https://www.linkedin.com/pulse/ten-self-improving-software-architectures-transcendai-tech-07xfc/)
+---
 
 AgenticSql requires SQL Express or SQL Server to be installed. AgenticSql is being distributed as source only at this point so you'll need to compile it. I'm compiling with Visual Studio but any C# compiler should compile it without too much trouble. Windows only.</br>
 </br>
@@ -15,7 +19,7 @@ You need an API key for OpenAI or OpenRouter to run AgenticSql. There is a place
 
 QuickStart.</br>
 </br>
-The [Bootstrap Prompt](Prompts/Bootstrap.txt) is an incremental improvement upon the longevity researcher prompt. It appears capable of initiating a self improving intelligence autonomously. The Bootstrap prompt is written to work on the Millennium Math Contest problems. You should be able to remove the parts about the math contest and adapt it for your use case fairly easily. It's written to allow the future deletion of your use case and preserve the general purpose intelligence should you wish to do so. This type of AI should be able to take on many types of scientific problems and other types of problems as well. Backup your database on a regular basis, agentic AI's will reliably destroy you project every now and then.</br>
+The [Bootstrap Prompt](Prompts/Bootstrap.txt) is an incremental improvement upon the longevity researcher prompt. It appears capable of initiating a self improving intelligence autonomously. The Bootstrap prompt is written to work on the Millennium Prize Problems problems. You should be able to remove the parts about the math contest and adapt it for your use case fairly easily. It's written to allow the future deletion of your use case and preserve the general purpose intelligence should you wish to do so. This type of AI should be able to take on many types of scientific problems and other types of problems as well. Backup your database on a regular basis, agentic AI's will reliably destroy you project every now and then.</br>
 
 ---
 
