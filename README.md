@@ -6,6 +6,7 @@ Create a disposable branch of your database if you want to try out this alpha of
 **AgenticSql** is a natural language interface to SQL. It’s also an iterative agent capable of building and running autonomous, self improving and self healing systems. With a prompt you can set it forth to autonomously work on complex projects. AgenticSql can build the self improving, self healing system, build the tooling needed to work on your use case, and go to work. Here is an example prompt: [BootstrapPrompt](Prompts/Bootstrap.txt)
 
 ---
+AgenticSql was rated by ChatGPT-5 as the best overall self improving AI architecture out of ten architectures.</br>
 ![Compare](Compare.png)</br>
 ![Ranked](Ranked.png)</br>
 [Complete article on LinkedIn](https://www.linkedin.com/pulse/ten-self-improving-software-architectures-transcendai-tech-07xfc/)</br>
