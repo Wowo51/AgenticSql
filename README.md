@@ -66,7 +66,7 @@ Where 'features' are requested I suspect that most will want custom self improvi
 </br>
 Also, I am providing code generation services in C# and sql.</br>
 10x coder == 1/10 cost.</br>
-Estimates: [TranscendAI.tech](https://TranscendAI.tech)
+Estimates: https://TranscendAI.tech
 
 ![Footer Logo](agenticsql.jpg)
 *Copyright © 2025 Warren Harding - TranscendAI.tech - AgenticSql*
