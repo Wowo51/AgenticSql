@@ -24,6 +24,8 @@ You need an API key for OpenAI or OpenRouter to run AgenticSql. There is a place
 
 QuickStart.</br>
 </br>
+To use an existing database load the database into SQL Express/Server LocalDB. Set the DB Name in AgenticSql's UI to the database name. Enter a prompt and click StartAgent.</br>
+</br>
 The [Bootstrap Prompt](Prompts/Bootstrap.txt) is an incremental improvement upon the longevity researcher prompt. It appears capable of initiating a self improving intelligence autonomously. The Bootstrap prompt is written to work on the Millennium Prize Problems problems. You should be able to remove the parts about the math contest and adapt it for your use case fairly easily. It's written to allow the future deletion of your use case and preserve the general purpose intelligence should you wish to do so. This type of AI should be able to take on many types of scientific problems and other types of problems as well. Backup your database on a regular basis, agentic AI's will reliably destroy you project every now and then.</br>
 
 ---
