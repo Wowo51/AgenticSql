@@ -28,7 +28,7 @@ QuickStart.</br>
 </br>
 To use an existing database load the database into SQL Express/Server LocalDB. Set the DB Name in AgenticSql's UI to the database name. Enter a prompt and click StartAgent.</br>
 </br>
-The [Bootstrap Prompt](Prompts/Bootstrap.txt) is an incremental improvement upon the longevity researcher prompt. It appears capable of initiating a self improving intelligence autonomously. The Bootstrap prompt is written to work on the Millennium Prize Problems problems. You should be able to remove the parts about the math contest and adapt it for your use case fairly easily. It's written to allow the future deletion of your use case and preserve the general purpose intelligence should you wish to do so. This type of AI should be able to take on many types of scientific problems and other types of problems as well. Backup your database on a regular basis, agentic AI's will reliably destroy you project every now and then.</br>
+The [Bootstrap Prompt](Prompts/Bootstrap.txt) is an incremental improvement upon the longevity researcher prompt. It appears capable of initiating a self improving intelligence autonomously. The Bootstrap prompt is written to work on the Millennium Prize Problems. You should be able to remove the parts about the math contest and adapt it for your use case fairly easily. It's written to allow the future deletion of your use case and preserve the general purpose intelligence should you wish to do so. This type of AI should be able to take on many types of scientific problems and other types of problems as well. Backup your database on a regular basis, agentic AI's will reliably destroy you project every now and then.</br>
 
 ---
 
@@ -54,7 +54,17 @@ In addition to MIT, this project includes a safeguard that must be preserved. Th
 See the [LICENSE](License.txt) file for full details.
 
 ---
-I am providing code generation services in C# and sql.</br>
+
+Here are three ways of getting involved in self improving code generation.</br>
+1) Contribute publicly towards the development of AgenticSql. Contributors will have the opportunity to state what features they want developed. Those features will be open sourced. Contributors will get a public 'Thank You' on the site.</br>
+2) Private development purchases. Purchasers will have the opportunity to state what features they want developed. Those features will not be open sourced, they will become the property of the purchaser.</br>
+3) Licensing. Licensees will be granted the right to remove the existing license and name so that the app can be fully rebranded and integrated into their company. Licensees will have the right to develop AgenticSql further and resell their advanced version without being bound by the MIT. Note that it is generally considered to be illegal to remove an existing license with forks or ports.</br>
+</br>
+I've included a license supplement requiring users to spend at least 10% of their LLM expenditures on ensuring AgenticSql behaves ethically. AgenticSql has that requirement embedding in it's coding. In all cases the 10% ethical expenditure requirement will remain.</br>
+</br>
+Where 'features' are requested I suspect that most will want custom self improving databases to be developed. For example a certain form of scientific researcher may be desired, or strong enterprise decision intelligence may be requested. AgenticSql's self improving code generating nature allow it to rapidly proceed down different development paths.</br>
+</br>
+Also, I am providing code generation services in C# and sql.</br>
 10x coder == 1/10 cost.</br>
 Estimates: [TranscendAI.tech](https://TranscendAI.tech)
 
